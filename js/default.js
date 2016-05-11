@@ -1,4 +1,8 @@
 var color = {
+    rgb: function (x, y, map) {
+        return {r: 0, g: 0, b: 0}
+    },
+
     sfr: function (x, y, map) {
         return {r: 0, g: 0, b: 0}
     },
@@ -72,6 +76,7 @@ var createMaps = function (data) {
     createBGraph(data.Tspec_B, data.Bwave);
     createRGraph(data.Tspec_R, data.Rwave);
 
+    createImage($('.rgb'), data.width, data.height, color.rgb, map);
     createImage($('.sfr'), data.width, data.height, color.sfr, map);
     createImage($('.vel'), data.width, data.height, color.vel, map);
     createImage($('.vel_dis'), data.width, data.height, color.vel_dis, map);
