@@ -1,9 +1,46 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
     <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
         <title>SAMI Galaxy Survey - Single Object Viewer</title>
+
+        <link rel="stylesheet" href="css/bootstrap.css" />
+        <link rel="stylesheet" href="css/bootstrap-theme.css" />
+        <link rel="stylesheet" href="css/default.css" />
     </head>
 
-    <body>
+    <body class="container">
         <h1>SAMI Galaxy Survey - Single Object Viewer</h1>
-    </body>    
+
+        <header>
+            <h2></h2>
+            <a href="#">Download full data</a>
+        </header>
+
+        <div class="spec">
+            <div class="b-spec">B Spec</div>
+            <div class="r-spec">R Spec</div>
+        </div>
+
+        <div class="img">
+            <div><div class="rgb"></div></div>
+            <div><div class="sfr"></div></div>
+            <div><div class="vel"></div></div>
+            <div><div class="vel_dis"></div></div>
+            <div><div class="BPT"></div></div>
+            <div><div class="nii_ha"></div></div>
+            <div><div class="oiii_hb"></div></div>
+            <div><div class="bpt-scatter"></div></div>
+        </div>
+
+        <script src="js/jquery-2.2.3.js"></script>
+        <script src="js/bootstrap.js"></script>
+        <script src="js/highcharts.js"></script>
+
+        <script src="js/default.js"></script>
+
+    </body>
 </html>

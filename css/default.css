@@ -1,0 +1,57 @@
+.img span {
+    display: block;
+    height: 2%;
+    padding: 0;
+    margin: 0;
+}
+
+i {
+    padding: 0;
+    margin: 0;
+    display: block;
+    float: left;
+    width: 2%;
+    height: 100%;
+}
+
+.spec,
+.img {
+    margin: 16px -8px;
+    word-wrap: break-word;
+    overflow: hidden;
+}
+
+.spec:after,
+.img:after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+.spec > div {
+    height: 150px;
+    border: 1px solid blue;
+    width: calc(50% - 16px);
+    margin: 0 8px;
+    float: left;
+    position: relative;
+}
+
+.img > div {
+    border: 1px solid red;
+    height: 0;
+    padding-bottom: 25%;
+    width: calc(25% - 16px);
+    margin: 8px;
+    float: left;
+    position: relative;
+}
+
+.img > div > div {
+    padding: 1px;
+    top: 0;
+    bottom: 0;
+    position: absolute;
+    left: 0;
+    right: 0;
+}
