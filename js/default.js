@@ -123,38 +123,36 @@ var createImage = function ($target, width, height, callback, map) {
 };
 
 var createPointData = function (data) {
-    console.log(data);
-
     $('.point').html([
         '<dl>',
-            '<dt>x</dt>',
+            '<dt>x:</dt>',
             '<dd>' + data.x + '</dd>',
 
-            '<dt>y</dt>',
+            '<dt>y:</dt>',
             '<dd>' + data.y + '</dd>',
 
-            '<dt>BPT</dt>',
+            '<dt>BPT:</dt>',
             '<dd>' + data.BPT + '</dd>',
 
-            '<dt>Aperture Scalar</dt>',
+            '<dt>Aperture Scalar:</dt>',
             '<dd>' + data.aperture_scalar + '</dd>',
 
-            '<dt>nII Hα</dt>',
+            '<dt>nII Hα:</dt>',
             '<dd>' + data.nii_ha + '</dd>',
 
-            '<dt>oiii Hβ</dt>',
+            '<dt>oiii Hβ:</dt>',
             '<dd>' + data.oiii_hb + '</dd>',
 
-            '<dt>sfr</dt>',
+            '<dt>sfr:</dt>',
             '<dd>' + data.sfr + '</dd>',
 
-            '<dt>Spaxel Scalar</dt>',
+            '<dt>Spaxel Scalar:</dt>',
             '<dd>' + data.spaxel_scalar + '</dd>',
 
-            '<dt>Vel</dt>',
+            '<dt>Vel:</dt>',
             '<dd>' + data.vel + '</dd>',
 
-            '<dt>Vel dis</dt>',
+            '<dt>Vel dis:</dt>',
             '<dd>' + data.vel_dis + '</dd>',
         '</dl>'
     ].join(''));
@@ -206,14 +204,23 @@ var createGraph = function (spec, wave, $container, title) {
                 text: title
             },
             xAxis: {
-                type: 'linear'
+                type: 'linear',
+                min: wave.min,
+                max: wave.max,
+                tickPixelInterval: 20,
+                minorTickInterval: 'auto',
+                minorGridLineWidth: 0,
+                minorTickWidth: 1,
+                minorTickLength: 5
             },
             yAxis: {
                 title: {
                     text: null
                 },
                 min: 0,
-                maxZoom: 0.1
+                max: 250,
+                tickInterval: 100,
+                minorTickInterval: 50
             },
             tooltip: {
                 formatter: function () {
@@ -230,8 +237,10 @@ var createGraph = function (spec, wave, $container, title) {
                 }
             },
             series: [{
+                pointInterval: wave.step,
+                pointStart: data[0][0],
                 step: true,
-                data: detailData
+                data: data
             }]
 
         }).highcharts(); // return chart
@@ -277,6 +286,11 @@ var createGraph = function (spec, wave, $container, title) {
                                 color: 'rgba(0, 0, 0, 0.2)'
                             });
 
+                            detailChart.xAxis[0].update({
+                                min: null,
+                                max: null
+                            });
+
                             detailChart.series[0].setData(detailData);
 
                             return false;
@@ -286,16 +300,22 @@ var createGraph = function (spec, wave, $container, title) {
                 title: {
                     text: null
                 },
+                xAxis: {
+                    type: 'linear',
+                    min: wave.min,
+                    max: wave.max,
+                    tickPixelInterval: 20,
+                    minorTickInterval: 'auto',
+                    minorGridLineWidth: 0,
+                    minorTickWidth: 1,
+                    minorTickLength: 5
+                },
                 yAxis: {
                     title: {
                         text: null
                     },
-                    min: 0
-                },
-                xAxis: {
-                    title: {
-                        text: null
-                    }
+                    showLastLabel: false,
+                    showFirstLabel: false
                 },
                 tooltip: {
                     formatter: function () {
@@ -313,7 +333,6 @@ var createGraph = function (spec, wave, $container, title) {
                         animation: false
                     }
                 },
-
                 series: [{
                     type: 'area',
                     pointInterval: wave.step,
