@@ -219,8 +219,8 @@ var createGraph = function (spec, wave, $container, title) {
                 },
                 min: 0,
                 max: 250,
-                tickInterval: 100,
-                minorTickInterval: 50
+                tickInterval: 50,
+                minorTickInterval: 25
             },
             tooltip: {
                 formatter: function () {
@@ -304,11 +304,7 @@ var createGraph = function (spec, wave, $container, title) {
                     type: 'linear',
                     min: wave.min,
                     max: wave.max,
-                    tickPixelInterval: 20,
-                    minorTickInterval: 'auto',
-                    minorGridLineWidth: 0,
-                    minorTickWidth: 1,
-                    minorTickLength: 5
+                    visible: false
                 },
                 yAxis: {
                     title: {
@@ -334,11 +330,11 @@ var createGraph = function (spec, wave, $container, title) {
                     }
                 },
                 series: [{
-                    type: 'area',
                     pointInterval: wave.step,
                     pointStart: data[0][0],
                     step: true,
-                    data: data
+                    data: data,
+                    lineWidth: 1
                 }]
 
             }, function (masterChart) {
@@ -349,7 +345,7 @@ var createGraph = function (spec, wave, $container, title) {
 
     var $detailContainer = $('<div>')
         .css({
-            height: 200
+            height: 225
         })
         .appendTo($container);
 
@@ -357,7 +353,7 @@ var createGraph = function (spec, wave, $container, title) {
         .css({
             position: 'absolute',
             bootom: 0,
-            height: 100,
+            height: 75,
             width: '100%'
         })
         .appendTo($container);
