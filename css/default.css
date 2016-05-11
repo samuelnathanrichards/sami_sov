@@ -5,7 +5,7 @@
     margin: 0;
 }
 
-i {
+.img span i {
     padding: 0;
     margin: 0;
     display: block;
@@ -28,30 +28,78 @@ i {
     clear: both;
 }
 
+.point,
+.img > div,
 .spec > div {
-    height: 150px;
-    border: 1px solid blue;
-    width: calc(50% - 16px);
-    margin: 0 8px;
+    border-radius: 2px;
+    border: 1px solid #5A4181;
+}
+
+.img > div,
+.spec > div {
     float: left;
     position: relative;
+    overflow: hidden;
+}
+
+.point {
+    padding: 10px;
+    height: 220px;
+}
+
+.point dd {
+    padding-left: 10px;
+    float: left;
+}
+
+.point dt {
+    float: left;
+    clear: both;
+}
+
+.spec > div {
+    height: 300px;
+    position: relative;
+    width: calc(50% - 16px);
+    margin: 0 8px;
 }
 
 .img > div {
-    border: 1px solid red;
     height: 0;
-    padding-bottom: 25%;
+    padding-bottom: calc(24px + 25%);
     width: calc(25% - 16px);
     margin: 8px;
-    float: left;
-    position: relative;
 }
 
 .img > div > div {
-    padding: 1px;
-    top: 0;
+    padding: 2px;
+    top: 24px;
     bottom: 0;
     position: absolute;
     left: 0;
     right: 0;
+}
+
+.img h3 {
+    margin: 0 2px;
+}
+
+@media (max-width: 1000px) {
+    .spec > div {
+        width: calc(100% - 16px);
+        float: none;
+        margin-bottom: 16px;
+    }
+
+    .img > div {
+        padding-bottom: calc(24px + 50%);
+        width: calc(50% - 16px);
+    }
+}
+
+@media (max-width: 500px) {
+    .img > div {
+        padding-bottom: calc(24px + 100%);
+        width: calc(100% - 16px);
+    }
 }
