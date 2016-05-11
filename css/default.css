@@ -1,3 +1,44 @@
+@font-face {
+    font-family: 'Fontin Sans';
+    /* A font by Jos Buivenga (exljbris) -> www.exljbris.com */
+    src: url('../fonts/fontin_sans_r_45b-webfont.eot');
+    src: url('../fonts/fontin_sans_r_45b-webfont.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/fontin_sans_r_45b-webfont.woff') format('woff'),
+    url('../fonts/fontin_sans_r_45b-webfont.ttf') format('truetype'),
+    url('../fonts/fontin_sans_r_45b-webfont.svg#fontin_sans_rgregular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Fontin Sans';
+    /* A font by Jos Buivenga (exljbris) -> www.exljbris.com */
+    src: url('../fonts/fontin_sans_b_45b-webfont.eot');
+    src: url('../fonts/fontin_sans_b_45b-webfont.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/fontin_sans_b_45b-webfont.woff') format('woff'),
+    url('../fonts/fontin_sans_b_45b-webfont.ttf') format('truetype'),
+    url('../fonts/fontin_sans_b_45b-webfont.svg#fontin_sans_rgbold') format('svg');
+    font-weight: bold;
+    font-style: normal;
+
+}
+
+h1 {
+    color: #df0010;
+    font-size: 50px;
+    font-family: 'Fontin Sans', sans-serif;
+}
+
+.logo {
+    font-style: normal;
+    font-size: 20px;
+    display: block;
+    padding: 20px 0 5px 0;
+    margin-bottom: 40px;
+    border-bottom: 1px solid #464646;
+}
+
+
 .img span {
     display: block;
     height: 2%;
@@ -32,7 +73,7 @@
 .img > div,
 .spec > div {
     border-radius: 2px;
-    border: 1px solid #5A4181;
+    border: 1px solid #464646;
 }
 
 .img > div,
