@@ -145,7 +145,7 @@ var createPointData = function (data) {
             '<dt>nII Hα:</dt>',
             '<dd>' + data.nii_ha + '</dd>',
 
-            '<dt>oiii Hβ:</dt>',
+            '<dt>oIII Hβ:</dt>',
             '<dd>' + data.oiii_hb + '</dd>',
 
             '<dt>sfr:</dt>',
