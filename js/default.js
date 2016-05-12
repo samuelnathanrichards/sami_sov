@@ -403,8 +403,8 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
 
                     if (data.indexed_spaxel_data[x] && data.indexed_spaxel_data[x][y]) {
                         createPointData(data.indexed_spaxel_data[x][y]);
-                        createBGraph(data.indexed_spaxel_data[x][y].Aspec_B, data.Bwave, data.indexed_spaxel_data[x][y].AspecMax);
-                        createRGraph(data.indexed_spaxel_data[x][y].Aspec_R, data.Rwave, data.indexed_spaxel_data[x][y].AspecMax);
+                        widgets.BSpecGraph.create(data.indexed_spaxel_data[x][y].Aspec_B, data.Bwave, data.indexed_spaxel_data[x][y].AspecMax);
+                        widgets.RSpecGraph.create(data.indexed_spaxel_data[x][y].Aspec_R, data.Rwave, data.indexed_spaxel_data[x][y].AspecMax);
                     }
                 });
             },
@@ -640,6 +640,12 @@ $oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
                     y: value.nii_ha
                 }});
 
+
+                var current = $('.bpt-scatter').highcharts();
+                if (current) {
+                    current.destroy();
+                }
+
                 $('.bpt-scatter').highcharts({
                     chart: {
                         type: 'scatter',
@@ -680,6 +686,293 @@ $oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
         });
 });
 
+$oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
+    "use strict";
+
+    var base = $oop.Base,
+        self = base.extend(className);
+
+    /**
+     * @name app.Spec
+     * @function
+     * @returns {app.Spec}
+     */
+
+    /**
+     * @class
+     * @extends $oop.Base
+     */
+    app.widgets.SpecGraph = self
+        .addMethods(/** @lends app.Image# */{
+            init: function (spec, wave, xMax) {
+                var $container = this.getContainer();
+                var title = this.getTitle();
+
+                var detailChart,
+                    data = [];
+
+                $container.html('');
+
+                var x = wave.min,
+                    max = 0;
+                for (var i = 0; i < spec.length; ++i) {
+                    max = Math.max(max, spec[i]);
+
+                    data.push([x, spec[i] || null]);
+
+                    x += wave.step;
+                }
+
+                // create the detail chart
+                function createDetail(masterChart, $detailContainer) {
+
+                    // prepare the detail chart
+                    var detailData = [],
+                        detailStart = data[0][0];
+
+                    $.each(masterChart.series[0].data, function () {
+                        if (this.x >= detailStart) {
+                            detailData.push(this.y);
+                        }
+                    });
+
+                    // create a detail chart referenced by a global variable
+                    var current = $detailContainer.highcharts();
+                    if (current) {
+                        current.destroy();
+                    }
+
+                    detailChart = $detailContainer.highcharts({
+                        credits: {
+                            enabled: false
+                        },
+                        title: {
+                            text: title
+                        },
+                        xAxis: {
+                            type: 'linear',
+                            min: wave.min,
+                            max: wave.max,
+                            tickPixelInterval: 20,
+                            minorTickInterval: 'auto',
+                            minorGridLineWidth: 0,
+                            minorTickWidth: 1,
+                            minorTickLength: 5
+                        },
+                        yAxis: {
+                            title: {
+                                text: null
+                            },
+                            min: 0,
+                            max: xMax,
+                            tickInterval: 50,
+                            minorTickInterval: 25
+                        },
+                        tooltip: {
+                            formatter: function () {
+                                return 'x:' + this.points[0].x + ', y:' + this.points[0].y;
+                            },
+                            shared: true
+                        },
+                        legend: {
+                            enabled: false
+                        },
+                        plotOptions: {
+                            series: {
+                                animation: false
+                            }
+                        },
+                        series: [{
+                            pointInterval: wave.step,
+                            pointStart: data[0][0],
+                            step: true,
+                            data: data
+                        }]
+
+                    }).highcharts(); // return chart
+                }
+
+                // create the master chart
+                function createMaster($masterContiner, $detailContainer) {
+                    var current = $masterContiner.highcharts();
+                    if (current) {
+                        current.destroy();
+                    }
+
+                    $masterContiner.highcharts({
+                            chart: {
+                                zoomType: 'x',
+                                events: {
+
+                                    // listen to the selection event on the master chart to update the
+                                    // extremes of the detail chart
+                                    selection: function (event) {
+                                        var extremesObject = event.xAxis[0],
+                                            min = extremesObject.min,
+                                            max = extremesObject.max,
+                                            detailData = [],
+                                            xAxis = this.xAxis[0];
+
+                                        // reverse engineer the last part of the data
+                                        $.each(this.series[0].data, function () {
+                                            if (this.x > min && this.x < max) {
+                                                detailData.push([this.x, this.y]);
+                                            }
+                                        });
+
+                                        // move the plot bands to reflect the new detail span
+                                        xAxis.removePlotBand('mask-before');
+                                        xAxis.addPlotBand({
+                                            id: 'mask-before',
+                                            from: data[0][0],
+                                            to: min,
+                                            color: 'rgba(0, 0, 0, 0.2)'
+                                        });
+
+                                        xAxis.removePlotBand('mask-after');
+                                        xAxis.addPlotBand({
+                                            id: 'mask-after',
+                                            from: max,
+                                            to: data[data.length - 1][0],
+                                            color: 'rgba(0, 0, 0, 0.2)'
+                                        });
+
+                                        detailChart.xAxis[0].update({
+                                            min: null,
+                                            max: null
+                                        });
+
+                                        detailChart.series[0].setData(detailData);
+
+                                        return false;
+                                    }
+                                }
+                            },
+                            title: {
+                                text: null
+                            },
+                            xAxis: {
+                                type: 'linear',
+                                min: wave.min,
+                                max: wave.max,
+                                visible: false
+                            },
+                            yAxis: {
+                                title: {
+                                    text: null
+                                },
+                                min: 0,
+                                max: xMax,
+                                showLastLabel: false,
+                                showFirstLabel: false
+                            },
+                            tooltip: {
+                                formatter: function () {
+                                    return false;
+                                }
+                            },
+                            legend: {
+                                enabled: false
+                            },
+                            credits: {
+                                enabled: false
+                            },
+                            plotOptions: {
+                                series: {
+                                    animation: false
+                                }
+                            },
+                            series: [{
+                                pointInterval: wave.step,
+                                pointStart: data[0][0],
+                                step: true,
+                                data: data,
+                                lineWidth: 1
+                            }]
+
+                        }, function (masterChart) {
+                            createDetail(masterChart, $detailContainer);
+                        })
+                        .highcharts(); // return chart instance
+                }
+
+                var $detailContainer = $('<div>')
+                    .css({
+                        height: 225
+                    })
+                    .appendTo($container);
+
+                var $masterContainer = $('<div>')
+                    .css({
+                        position: 'absolute',
+                        bootom: 0,
+                        height: 75,
+                        width: '100%'
+                    })
+                    .appendTo($container);
+
+                // create master and in its callback, create the detail chart
+                createMaster($masterContainer, $detailContainer);
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'BSpecGraph', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.SpecGraph,
+        self = base.extend(className);
+
+    /**
+     * @name app.widgets.BSpecGraph
+     * @function
+     * @returns {app.widgets.BSpecGraph}
+     */
+
+    /**
+     * @class
+     * @extends widgets.SpecGraph
+     */
+    app.widgets.BSpecGraph = self
+        .addMethods(/** @lends app.Image# */{
+            getContainer: function () {
+                return $('.b-spec');
+            },
+
+            getTitle: function () {
+                return 'B Spec';
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'RSpecGraph', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.SpecGraph,
+        self = base.extend(className);
+
+    /**
+     * @name app.widgets.RSpecGraph
+     * @function
+     * @returns {app.widgets.RSpecGraph}
+     */
+
+    /**
+     * @class
+     * @extends widgets.SpecGraph
+     */
+    app.widgets.RSpecGraph = self
+        .addMethods(/** @lends app.Image# */{
+            getContainer: function () {
+                return $('.r-spec');
+            },
+
+            getTitle: function () {
+                return 'R Spec';
+            }
+        });
+});
+
 (function () {
     "use strict";
 
@@ -700,8 +993,8 @@ var render = function (data) {
 
     var TspecMax = Math.max.apply(Math, data.Tspec_B.concat(data.Tspec_R));
 
-    createBGraph(data.Tspec_B, data.Bwave, TspecMax);
-    createRGraph(data.Tspec_R, data.Rwave, TspecMax);
+    app.widgets.BSpecGraph.create(data.Tspec_B, data.Bwave, TspecMax);
+    app.widgets.RSpecGraph.create(data.Tspec_R, data.Rwave, TspecMax);
 
     app.widgets.RGBImage.create(data);
     app.widgets.SFRImage.create(data);
@@ -864,210 +1157,4 @@ var createPointData = function (data) {
             '<dd>' + data.vel_dis + '</dd>',
         '</dl>'
     ].join(''));
-};
-
-var createBGraph = function (spec, wave, max) {
-    createGraph(spec, wave, $('.b-spec'), 'B Spec', max);
-};
-
-var createRGraph = function (spec, wave, max) {
-    createGraph(spec, wave, $('.r-spec'), 'R Spec', max);
-};
-
-var createGraph = function (spec, wave, $container, title, xMax) {
-    var detailChart,
-        data = [];
-
-    $container.html('');
-
-    var x = wave.min,
-        max = 0;
-    for (var i = 0; i < spec.length; ++i) {
-        max = Math.max(max, spec[i]);
-
-        data.push([x, spec[i] || null]);
-
-        x += wave.step;
-    }
-
-    // create the detail chart
-    function createDetail(masterChart, $detailContainer) {
-
-        // prepare the detail chart
-        var detailData = [],
-            detailStart = data[0][0];
-
-        $.each(masterChart.series[0].data, function () {
-            if (this.x >= detailStart) {
-                detailData.push(this.y);
-            }
-        });
-
-        // create a detail chart referenced by a global variable
-        detailChart = $detailContainer.highcharts({
-            credits: {
-                enabled: false
-            },
-            title: {
-                text: title
-            },
-            xAxis: {
-                type: 'linear',
-                min: wave.min,
-                max: wave.max,
-                tickPixelInterval: 20,
-                minorTickInterval: 'auto',
-                minorGridLineWidth: 0,
-                minorTickWidth: 1,
-                minorTickLength: 5
-            },
-            yAxis: {
-                title: {
-                    text: null
-                },
-                min: 0,
-                max: xMax,
-                tickInterval: 50,
-                minorTickInterval: 25
-            },
-            tooltip: {
-                formatter: function () {
-                    return 'x:' + this.points[0].x + ', y:' + this.points[0].y;
-                },
-                shared: true
-            },
-            legend: {
-                enabled: false
-            },
-            plotOptions: {
-                series: {
-                    animation: false
-                }
-            },
-            series: [{
-                pointInterval: wave.step,
-                pointStart: data[0][0],
-                step: true,
-                data: data
-            }]
-
-        }).highcharts(); // return chart
-    }
-
-    // create the master chart
-    function createMaster($masterContiner, $detailContainer) {
-        $masterContiner.highcharts({
-                chart: {
-                    zoomType: 'x',
-                    events: {
-
-                        // listen to the selection event on the master chart to update the
-                        // extremes of the detail chart
-                        selection: function (event) {
-                            var extremesObject = event.xAxis[0],
-                                min = extremesObject.min,
-                                max = extremesObject.max,
-                                detailData = [],
-                                xAxis = this.xAxis[0];
-
-                            // reverse engineer the last part of the data
-                            $.each(this.series[0].data, function () {
-                                if (this.x > min && this.x < max) {
-                                    detailData.push([this.x, this.y]);
-                                }
-                            });
-
-                            // move the plot bands to reflect the new detail span
-                            xAxis.removePlotBand('mask-before');
-                            xAxis.addPlotBand({
-                                id: 'mask-before',
-                                from: data[0][0],
-                                to: min,
-                                color: 'rgba(0, 0, 0, 0.2)'
-                            });
-
-                            xAxis.removePlotBand('mask-after');
-                            xAxis.addPlotBand({
-                                id: 'mask-after',
-                                from: max,
-                                to: data[data.length - 1][0],
-                                color: 'rgba(0, 0, 0, 0.2)'
-                            });
-
-                            detailChart.xAxis[0].update({
-                                min: null,
-                                max: null
-                            });
-
-                            detailChart.series[0].setData(detailData);
-
-                            return false;
-                        }
-                    }
-                },
-                title: {
-                    text: null
-                },
-                xAxis: {
-                    type: 'linear',
-                    min: wave.min,
-                    max: wave.max,
-                    visible: false
-                },
-                yAxis: {
-                    title: {
-                        text: null
-                    },
-                    min: 0,
-                    max: xMax,
-                    showLastLabel: false,
-                    showFirstLabel: false
-                },
-                tooltip: {
-                    formatter: function () {
-                        return false;
-                    }
-                },
-                legend: {
-                    enabled: false
-                },
-                credits: {
-                    enabled: false
-                },
-                plotOptions: {
-                    series: {
-                        animation: false
-                    }
-                },
-                series: [{
-                    pointInterval: wave.step,
-                    pointStart: data[0][0],
-                    step: true,
-                    data: data,
-                    lineWidth: 1
-                }]
-
-            }, function (masterChart) {
-                createDetail(masterChart, $detailContainer);
-            })
-            .highcharts(); // return chart instance
-    }
-
-    var $detailContainer = $('<div>')
-        .css({
-            height: 225
-        })
-        .appendTo($container);
-
-    var $masterContainer = $('<div>')
-        .css({
-            position: 'absolute',
-            bootom: 0,
-            height: 75,
-            width: '100%'
-        })
-        .appendTo($container);
-
-    // create master and in its callback, create the detail chart
-    createMaster($masterContainer, $detailContainer);
 };
