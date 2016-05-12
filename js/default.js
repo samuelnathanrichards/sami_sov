@@ -6,7 +6,7 @@ $.ajax(
     'data/91924.json',
     {
         success: function (data) {
-            createMaps(data)
+            render(data)
         },
         error: function (data) {
             console.log(arguments);
@@ -81,7 +81,7 @@ $oop.postpone(app.widgets, 'Point', function (widgets, className) {
                 this.x = x;
                 this.y = y;
 
-                this.value = dd.map[x] && dd.map[x][y] ? dd.map[x][y][this.getField()] : null;
+                this.value = dd.indexed_spaxel_data[x] && dd.indexed_spaxel_data[x][y] ? dd.indexed_spaxel_data[x][y][this.getField()] : null;
             },
 
             getColor: function () {
@@ -114,8 +114,8 @@ $oop.postpone(app.widgets, 'NormalizedPoint', function (widgets, className) {
         .addMethods(/** @lends app.Image# */{
             init: function (x, y, dd) {
                 base.init.call(this, x, y, dd);
-                this.max = dd[this.getField()].max;
-                this.min = dd[this.getField()].min;
+                this.max = dd.limits[this.getField()].max;
+                this.min = dd.limits[this.getField()].min;
             },
 
             normalize: function (value) {
@@ -367,7 +367,7 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
      */
     app.widgets.Image = self
         .addMethods(/** @lends app.Image# */{
-            init: function (data, map) {
+            init: function (data) {
                 var html = '',
                     x, y, color,
                     $target = this.getContainer();
@@ -376,8 +376,7 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
                     html += '<span>';
 
                     for (y = 0; y < data.height; ++y) {
-                        color =  this.createPoint(x, y, map).getColor();
-
+                        color =  this.createPoint(x, y, data).getColor();
                         html += '<i data-x="' + x + '" data-y="' + y + '" style="background-color: rgb(' + color.r + ',' + color.g + ',' + color.b + ')"></i>';
                     }
 
@@ -390,11 +389,10 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
                     var x = e.currentTarget.dataset.x,
                         y = e.currentTarget.dataset.y;
 
-
-                    if (map.map[x] && map.map[x][y]) {
-                        createPointData(map.map[x][y]);
-                        createBGraph(map.map[x][y].Aspec_B, data.Bwave, map.map[x][y].AspecMax);
-                        createRGraph(map.map[x][y].Aspec_R, data.Rwave, map.map[x][y].AspecMax);
+                    if (data.indexed_spaxel_data[x] && data.indexed_spaxel_data[x][y]) {
+                        createPointData(data.indexed_spaxel_data[x][y]);
+                        createBGraph(data.indexed_spaxel_data[x][y].Aspec_B, data.Bwave, data.indexed_spaxel_data[x][y].AspecMax);
+                        createRGraph(data.indexed_spaxel_data[x][y].Aspec_R, data.Rwave, data.indexed_spaxel_data[x][y].AspecMax);
                     }
                 });
             },
@@ -605,6 +603,68 @@ $oop.postpone(app.widgets, 'oIIIHβImage', function (widgets, className) {
         });
 });
 
+$oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.Image,
+        self = base.extend(className);
+
+    /**
+     * @name app.BPTScatterGraph
+     * @function
+     * @returns {app.BPTScatterGraph}
+     */
+
+    /**
+     * @class
+     * @extends widgets.Image
+     */
+    app.widgets.BPTScatterGraph = self
+        .addMethods(/** @lends app.Image# */{
+            init: function (data) {
+                var points = data.bpt_points.map(function (value) { return {
+                    name: 'x:' + value.x +  ', y:' + value.y,
+                    x: value.oiii_hb,
+                    y: value.nii_ha
+                }});
+
+                $('.bpt-scatter').highcharts({
+                    chart: {
+                        type: 'scatter',
+                        zoomType: 'xy'
+                    },
+                    title: null,
+                    xAxis: {
+                        title: {
+                            enabled: true,
+                            text: "oIII Hβ"
+                        }
+                    },
+                    yAxis: {
+                        title: {
+                            enabled: true,
+                            text: "nII Hα"
+                        }
+                    },
+                    plotOptions: {
+                        scatter: {
+                            tooltip: {
+                                headerFormat: '',
+                                pointFormat: '{point.name}, oIII Hβ {point.x}, nII Hα {point.y}'
+                            },
+                            marker: {
+                                radius: 1
+                            }
+                        }
+                    },
+                    series: [{
+                        data: points
+                    }]
+                })
+            }
+        });
+});
+
 (function () {
     "use strict";
 
@@ -619,8 +679,8 @@ $oop.postpone(app.widgets, 'oIIIHβImage', function (widgets, className) {
 })();
 
 
-var createMaps = function (data) {
-    var dd = createDenormalisedData(data);
+var render = function (data) {
+    var data = addDenormalisedData(data);
 
     $('h2').html('Galaxy: ' + data.id);
 
@@ -629,13 +689,15 @@ var createMaps = function (data) {
     createBGraph(data.Tspec_B, data.Bwave, TspecMax);
     createRGraph(data.Tspec_R, data.Rwave, TspecMax);
 
-    app.widgets.RGBImage.create(data, dd);
-    app.widgets.SFRImage.create(data, dd);
-    app.widgets.VelImage.create(data, dd);
-    app.widgets.VelDisImage.create(data, dd);
-    app.widgets.BPTClassImage.create(data, dd);
-    app.widgets.nIIHαImage.create(data, dd);
-    app.widgets.oIIIHβImage.create(data, dd);
+    app.widgets.RGBImage.create(data);
+    app.widgets.SFRImage.create(data);
+    app.widgets.VelImage.create(data);
+    app.widgets.VelDisImage.create(data);
+    app.widgets.BPTClassImage.create(data);
+    app.widgets.nIIHαImage.create(data);
+    app.widgets.oIIIHβImage.create(data);
+
+    app.widgets.BPTScatterGraph.create(data);
 
     $('.sov-loader').hide();
     $('.sov').show();
@@ -658,7 +720,7 @@ function percentile(arr, p) {
     return arr[lower] * (1 - weight) + arr[upper] * weight;
 }
 
-var createDenormalisedData = function (data) {
+var addDenormalisedData = function (data) {
     var map = [],
         point,
         sfr = [],
@@ -669,13 +731,16 @@ var createDenormalisedData = function (data) {
         bpt_class = [];
 
 
+    data.bpt_points = [];
+    data.indexed_spaxel_data = [];
+
     // x = nii_ha
     // y = oiii
 
     for (var i = 0; i < data.spaxel_data.length; ++i) {
         point = data.spaxel_data[i];
-        map[point.x] = map[point.x] || [];
-        map[point.x][point.y] = point;
+        data.indexed_spaxel_data[point.x] = data.indexed_spaxel_data[point.x] || [];
+        data.indexed_spaxel_data[point.x][point.y] = point;
 
         point.SspecMax = Math.max.apply(Math, point.Sspec_B.concat(point.Sspec_R));
         point.AspecMax = Math.max.apply(Math, point.Aspec_B.concat(point.Aspec_R));
@@ -703,6 +768,12 @@ var createDenormalisedData = function (data) {
         if (point.nii_ha && point.oiii_hb) {
             point.bpt_class = point.oiii_hb/point.nii_ha;
             bpt_class.push(point.bpt_class);
+            data.bpt_points.push({
+                x: point.x,
+                y: point.y,
+                oiii_hb: point.oiii_hb,
+                nii_ha: point.nii_ha
+            })
         }
     }
 
@@ -713,7 +784,7 @@ var createDenormalisedData = function (data) {
     oiii_hb.sort(function(a,b){return a - b});
     bpt_class.sort(function(a,b){return a - b});
 
-    var rd =  {
+    data.limits = {
         sfr: {
             max: percentile(sfr, 0.95),
             min: percentile(sfr, 0.05)
@@ -737,11 +808,10 @@ var createDenormalisedData = function (data) {
         bpt_class: {
             max: percentile(bpt_class, 0.99),
             min: percentile(bpt_class, 0.01)
-        },
-        map: map // x,y index 2d array
+        }
     };
 
-    return rd;
+    return data;
 };
 
 
