@@ -31,11 +31,17 @@ $oop.postpone(app.data, 'Spectrum', function (data, className) {
      * @extends app.Spectrum
      */
     app.data.Spectrum = self
-        .addMethods(/** @lends app.Spectrum# */{
+        .addMethods(/** @lends app.Spectrum */{
             RdBl: function (val) {
                 $assertion.isUnsigned8Bit(val);
 
                 return {r: Math.round(val), g: 0, b: 0};
+            },
+
+            BuBl: function (val) {
+                $assertion.isUnsigned8Bit(val);
+
+                return {r: 0, g: 0, b: Math.round(val)};
             },
 
             RdYlBu: function (val) {
@@ -216,7 +222,7 @@ $oop.postpone(app.widgets, 'nIIHαPoint', function (widgets, className, data) {
                     return base.getColor.call(this);
                 }
 
-                return data.Spectrum.RdYlBu(this.normalize(this.value));
+                return data.Spectrum.RdBl(this.normalize(this.value));
             },
 
             getField: function () {
@@ -248,7 +254,7 @@ $oop.postpone(app.widgets, 'oIIIHβPoint', function (widgets, className, data) {
                     return base.getColor.call(this);
                 }
 
-                return data.Spectrum.RdYlBu(this.normalize(this.value));
+                return data.Spectrum.BuBl(this.normalize(this.value));
             },
 
             getField: function () {
@@ -280,7 +286,7 @@ $oop.postpone(app.widgets, 'SFRPoint', function (widgets, className, data) {
                     return base.getColor.call(this);
                 }
 
-                return data.Spectrum.RdYlBu(this.normalize(this.value));
+                return data.Spectrum.RdBl(this.normalize(this.value));
             },
 
             getField: function () {
@@ -292,7 +298,7 @@ $oop.postpone(app.widgets, 'SFRPoint', function (widgets, className, data) {
 $oop.postpone(app.widgets, 'BPTClassPoint', function (widgets, className, data) {
     "use strict";
 
-    var base = widgets.NormalizedPoint,
+    var base = widgets.Point,
         self = base.extend(className);
 
     /**
@@ -303,7 +309,7 @@ $oop.postpone(app.widgets, 'BPTClassPoint', function (widgets, className, data) 
 
     /**
      * @class
-     * @extends widgets.NormalizedPoint
+     * @extends widgets.Point
      */
     app.widgets.BPTClassPoint = self
         .addMethods(/** @lends app.VelDisPoint# */{
@@ -312,11 +318,17 @@ $oop.postpone(app.widgets, 'BPTClassPoint', function (widgets, className, data) 
                     return base.getColor.call(this);
                 }
 
-                return data.Spectrum.RdYlBu(this.normalize(this.value));
+                return [
+                    {r: 0, g: 0, b: 0},
+                    {r: 255, g: 0, b: 0},   // red
+                    {r: 255, g: 0, b: 255}, // magenta
+                    {r: 0, g: 255, b: 0},   // green
+                    {r: 0, g: 0, b: 255}    // blue
+                ][this.value];
             },
 
             getField: function () {
-                return 'bpt_class';
+                return 'BPT';
             }
         });
 }, app.data);
@@ -657,6 +669,9 @@ $oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
                             }
                         }
                     },
+                    credits: {
+                        enabled: false
+                    },
                     series: [{
                         data: points
                     }]
@@ -677,7 +692,6 @@ $oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
         }
     });
 })();
-
 
 var render = function (data) {
     var data = addDenormalisedData(data);
