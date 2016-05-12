@@ -1,3 +1,13 @@
+
+
+Array.max = function( array ){
+    return Math.max.apply( Math, array );
+};
+
+Array.min = function( array ){
+    return Math.min.apply( Math, array );
+};
+
 var spectrum = {
     RdBl: function (val) {
         return {r: Math.round(val), g: 0, b: 0};
@@ -138,8 +148,10 @@ var createMaps = function (data) {
 
     $('h2').html('Galaxy: ' + data.id);
 
-    createBGraph(data.Tspec_B, data.Bwave);
-    createRGraph(data.Tspec_R, data.Rwave);
+    var TspecMax = Math.max.apply(Math, data.Tspec_B.concat(data.Tspec_R));
+
+    createBGraph(data.Tspec_B, data.Bwave, TspecMax);
+    createRGraph(data.Tspec_R, data.Rwave, TspecMax);
 
     createImage($('.rgb'), data.width, data.height, color.rgb, dd);
     createImage($('.sfr'), data.width, data.height, color.sfr, dd);
@@ -157,10 +169,13 @@ var createMaps = function (data) {
 
         if (dd.map[x] && dd.map[x][y]) {
             createPointData(dd.map[x][y]);
-            createBGraph(dd.map[x][y].Aspec_B, data.Bwave);
-            createRGraph(dd.map[x][y].Aspec_R, data.Rwave);
+            createBGraph(dd.map[x][y].Aspec_B, data.Bwave, dd.map[x][y].AspecMax);
+            createRGraph(dd.map[x][y].Aspec_R, data.Rwave, dd.map[x][y].AspecMax);
         }
     });
+
+    $('.sov-loader').hide();
+    $('.sov').show();
 };
 
 // Returns the value at a given percentile in a sorted numeric array.
@@ -193,6 +208,9 @@ var createDenormalisedData = function (data) {
         point = data.spaxel_data[i];
         map[point.x] = map[point.x] || [];
         map[point.x][point.y] = point;
+
+        point.SspecMax = Math.max.apply(Math, point.Sspec_B.concat(point.Sspec_R));
+        point.AspecMax = Math.max.apply(Math, point.Aspec_B.concat(point.Aspec_R));
 
         if (point.sfr) {
             sfr.push(point.sfr);
@@ -244,8 +262,6 @@ var createDenormalisedData = function (data) {
         },
         map: map // x,y index 2d array
     };
-
-    console.log(rd);
 
     return rd;
 };
@@ -304,15 +320,15 @@ var createPointData = function (data) {
     ].join(''));
 };
 
-var createBGraph = function (spec, wave) {
-    createGraph(spec, wave, $('.b-spec'), 'B Spec');
+var createBGraph = function (spec, wave, max) {
+    createGraph(spec, wave, $('.b-spec'), 'B Spec', max);
 };
 
-var createRGraph = function (spec, wave) {
-    createGraph(spec, wave, $('.r-spec'), 'R Spec');
+var createRGraph = function (spec, wave, max) {
+    createGraph(spec, wave, $('.r-spec'), 'R Spec', max);
 };
 
-var createGraph = function (spec, wave, $container, title) {
+var createGraph = function (spec, wave, $container, title, xMax) {
     var detailChart,
         data = [];
 
@@ -364,7 +380,7 @@ var createGraph = function (spec, wave, $container, title) {
                     text: null
                 },
                 min: 0,
-                max: 250,
+                max: xMax,
                 tickInterval: 50,
                 minorTickInterval: 25
             },
@@ -456,6 +472,8 @@ var createGraph = function (spec, wave, $container, title) {
                     title: {
                         text: null
                     },
+                    min: 0,
+                    max: xMax,
                     showLastLabel: false,
                     showFirstLabel: false
                 },
