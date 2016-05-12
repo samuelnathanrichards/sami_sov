@@ -1,60 +1,122 @@
+var spectrum = {
+    RdBl: function (val) {
+        return {r: Math.round(val), g: 0, b: 0};
+    },
+
+    RdGrBu: function (val) {
+        var color = {r: 0, g: 0, b: 0};
+
+        if (val < 255/2) {
+             color.r = Math.round(255 - (val * 2));
+        }
+
+        color.g = Math.round(255 - Math.abs((val * 2) - 255));
+        color.r = color.r + Math.round(255 - Math.abs((val * 2) - 255));
+
+        if (val > 255/2) {
+            color.b = Math.round((val * 2) - 255);
+        }
+
+        return color;
+    }
+};
+
 var color = {
-    rgb: function (x, y, map) {
+    rgb: function (x, y, dd) {
+        var point;
+
+        if (dd.map[x] && dd.map[x][y]) {
+            point = dd.map[x][y];
+        }
+
+        // "rgb": [0,0,0]
+        //return {r: point.rgb[0], g: point.rgb[1], b: point.rgb[2]};
         return {r: 0, g: 0, b: 0}
     },
 
-    sfr: function (x, y, map) {
-        return {r: 0, g: 0, b: 0}
+    sfr: function (x, y, dd) {
+        var sfr = false;
+
+        if (dd.map[x] && dd.map[x][y]) {
+            sfr = dd.map[x][y].vel;
+        }
+
+        if (sfr === false) {
+            return {r: 0, g: 0, b: 0};
+        }
+
+        return spectrum.RdGrBu(normalize(sfr, dd.sfr.max, dd.sfr.min));
     },
 
     BPT: function (x, y, map) {
         return {r: 0, g: 0, b: 0}
     },
 
-    nii_ha: function (x, y, map) {
-        return {r: 0, g: 0, b: 0}
+    nii_ha: function (x, y, dd) {
+        var nii_ha = false;
+
+        if (dd.map[x] && dd.map[x][y]) {
+            nii_ha = dd.map[x][y].vel;
+        }
+
+        if (nii_ha === false) {
+            return {r: 0, g: 0, b: 0};
+        }
+
+        return spectrum.RdGrBu(normalize(nii_ha, dd.nii_ha.max, dd.nii_ha.min));
     },
 
-    oiii_hb: function (x, y, map) {
-        return {r: 0, g: 0, b: 0}
+    oiii_hb: function (x, y, dd) {
+        var oiii_hb = false;
+
+        if (dd.map[x] && dd.map[x][y]) {
+            oiii_hb = dd.map[x][y].vel;
+        }
+
+        if (!oiii_hb) {
+            return {r: 0, g: 0, b: 0};
+        }
+
+        return spectrum.RdGrBu(normalize(oiii_hb, dd.oiii_hb.max, dd.oiii_hb.min));
     },
 
-    vel: function (x, y, map) {
-        var vel = 0,
-            color = {r: 0, g: 0, b: 0};
+    vel: function (x, y, dd) {
+        var vel = false;
 
-        if (map[x] && map[x][y]) {
-            vel = map[x][y].vel;
+        if (dd.map[x] && dd.map[x][y]) {
+            vel = dd.map[x][y].vel;
         }
 
-        if (vel > 0) {
-            color.r = Math.round(vel / 100 * 255);
-        } else if (vel < 0) {
-            vel = Math.abs(vel);
-            color.b = Math.round(vel / 100 * 255);
+        if (vel === false) {
+            return {r: 0, g: 0, b: 0};
         }
+        return spectrum.RdGrBu(normalize(vel, dd.vel.max, dd.vel.min));
 
-        return color;
     },
 
-    vel_dis: function (x, y, map) {
-        var vel_dis = 0,
-            color = {r: 0, g: 0, b: 0};
+    vel_dis: function (x, y, dd) {
+        var vel_dis = 0;
 
-        if (map[x] && map[x][y]) {
-            vel_dis = map[x][y].vel_dis;
+        if (dd.map[x] && dd.map[x][y]) {
+            vel_dis = dd.map[x][y].vel_dis;
         }
 
-        if (vel_dis > 0) {
-            color.r = Math.round(vel_dis / 100 * 255);
-        } else if (vel_dis < 0) {
-            vel_dis = Math.abs(vel_dis);
-            color.b = Math.round(vel_dis / 100 * 255);
+        if (!vel_dis) {
+            return {r: 0, g: 0, b: 0};
         }
 
-        return color;
+        return spectrum.RdBl(normalize(vel_dis, dd.vel_dis.max, dd.vel_dis.min));
     }
 };
+
+function normalize(value, max, min) {
+    value = Math.min(max, value);
+    value = Math.max(min, value);
+
+    value = ((value - min)/(max - min));
+
+    return value * 255;
+}
 
 $.ajax(
     'data/91924.json',
@@ -69,44 +131,123 @@ $.ajax(
 );
 
 var createMaps = function (data) {
-    var map = createMap(data);
+    var dd = createDenormalisedData(data);
+
+    // x = nii_ha
+    // y = oiii
 
     $('h2').html('Galaxy: ' + data.id);
 
     createBGraph(data.Tspec_B, data.Bwave);
     createRGraph(data.Tspec_R, data.Rwave);
 
-    createImage($('.rgb'), data.width, data.height, color.rgb, map);
-    createImage($('.sfr'), data.width, data.height, color.sfr, map);
-    createImage($('.vel'), data.width, data.height, color.vel, map);
-    createImage($('.vel_dis'), data.width, data.height, color.vel_dis, map);
-    createImage($('.BPT'), data.width, data.height, color.BPT, map);
-    createImage($('.nii_ha'), data.width, data.height, color.nii_ha, map);
-    createImage($('.oiii_hb'), data.width, data.height, color.oiii_hb, map);
+    createImage($('.rgb'), data.width, data.height, color.rgb, dd);
+    createImage($('.sfr'), data.width, data.height, color.sfr, dd);
+    createImage($('.vel'), data.width, data.height, color.vel, dd);
+    createImage($('.vel_dis'), data.width, data.height, color.vel_dis, dd);
+    createImage($('.BPT'), data.width, data.height, color.BPT, dd);
+    createImage($('.nii_ha'), data.width, data.height, color.nii_ha, dd);
+    createImage($('.oiii_hb'), data.width, data.height, color.oiii_hb, dd);
+
+
 
     $('.img i').on('mouseover', function (e) {
         var x = e.currentTarget.dataset.x,
             y = e.currentTarget.dataset.y;
 
-        if (map[x] && map[x][y]) {
-            createPointData(map[x][y]);
-            createBGraph(map[x][y].Aspec_B, data.Bwave);
-            createRGraph(map[x][y].Aspec_R, data.Rwave);
+        if (dd.map[x] && dd.map[x][y]) {
+            createPointData(dd.map[x][y]);
+            createBGraph(dd.map[x][y].Aspec_B, data.Bwave);
+            createRGraph(dd.map[x][y].Aspec_R, data.Rwave);
         }
     });
 };
 
-var createMap = function (data) {
+// Returns the value at a given percentile in a sorted numeric array.
+// "Linear interpolation between closest ranks" method
+function percentile(arr, p) {
+    if (arr.length === 0) return 0;
+    if (typeof p !== 'number') throw new TypeError('p must be a number');
+    if (p <= 0) return arr[0];
+    if (p >= 1) return arr[arr.length - 1];
+
+    var index = arr.length * p,
+        lower = Math.floor(index),
+        upper = lower + 1,
+        weight = index % 1;
+
+    if (upper >= arr.length) return arr[lower];
+    return arr[lower] * (1 - weight) + arr[upper] * weight;
+}
+
+var createDenormalisedData = function (data) {
     var map = [],
-        point;
+        point,
+        sfr = [],
+        vel = [],
+        vel_dis = [],
+        nii_ha = [],
+        oiii_hb = [];
 
     for (var i = 0; i < data.spaxel_data.length; ++i) {
         point = data.spaxel_data[i];
         map[point.x] = map[point.x] || [];
         map[point.x][point.y] = point;
+
+        if (point.sfr) {
+            sfr.push(point.sfr);
+        }
+
+        if (point.vel) {
+            vel.push(point.vel);
+        }
+
+        if (point.vel_dis) {
+            vel_dis.push(point.vel_dis);
+        }
+
+        if (point.nii_ha) {
+            nii_ha.push(point.nii_ha);
+        }
+
+        if (point.oiii_hb) {
+            oiii_hb.push(point.oiii_hb);
+        }
     }
 
-    return map
+    vel.sort(function(a,b){return a - b});
+    sfr.sort(function(a,b){return a - b});
+    vel_dis.sort(function(a,b){return a - b});
+    nii_ha.sort(function(a,b){return a - b});
+    oiii_hb.sort(function(a,b){return a - b});
+
+    var rd =  {
+        sfr: {
+            max: percentile(sfr, 0.95),
+            min: percentile(sfr, 0.05)
+        },
+        vel: {
+            max: percentile(vel, 0.95),
+            min: percentile(vel, 0.05)
+        },
+        vel_dis: {
+            max: percentile(vel_dis, 0.99),
+            min: percentile(vel_dis, 0.01)
+        },
+        nii_ha: {
+            max: percentile(nii_ha, 0.99),
+            min: percentile(nii_ha, 0.01)
+        },
+        oiii_hb: {
+            max: percentile(oiii_hb, 0.99),
+            min: percentile(oiii_hb, 0.01)
+        },
+        map: map // x,y index 2d array
+    };
+
+    console.log(rd);
+
+    return rd;
 };
 
 var createImage = function ($target, width, height, callback, map) {
