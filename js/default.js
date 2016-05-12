@@ -6,7 +6,8 @@ $.ajax(
     'data/91924.json',
     {
         success: function (data) {
-            render(data)
+            app.widgets.Galaxy.create(data)
+                .afterAdd();
         },
         error: function (data) {
             console.log(arguments);
@@ -28,7 +29,7 @@ $oop.postpone(app.data, 'Spectrum', function (data, className) {
 
     /**
      * @class
-     * @extends app.Spectrum
+     * @extends $oop.Base
      */
     app.data.Spectrum = self
         .addMethods(/** @lends app.Spectrum */{
@@ -49,18 +50,382 @@ $oop.postpone(app.data, 'Spectrum', function (data, className) {
 
                 var color = {r: 0, g: 0, b: 0};
 
-                if (val < 255/2) {
+                if (val < 255 / 2) {
                     color.r = Math.round(255 - (val * 2));
                 }
 
                 color.g = Math.round(255 - Math.abs((val * 2) - 255));
                 color.r = color.r + Math.round(255 - Math.abs((val * 2) - 255));
 
-                if (val > 255/2) {
+                if (val > 255 / 2) {
                     color.b = Math.round((val * 2) - 255);
                 }
 
                 return color;
+            }
+        });
+});
+
+$oop.postpone(app.data, 'Maths', function (data, className) {
+    "use strict";
+
+    var base = $oop.Base,
+        self = base.extend(className);
+
+    /**
+     * @name app.Maths
+     * @function
+     * @returns {app.Maths}
+     */
+
+    /**
+     * @class
+     * @extends $oop.Base
+     */
+    app.data.Maths = self
+        .addMethods(/** @lends app.Maths */{
+            /**
+             * Returns the value at a given percentile in a sorted numeric array.
+             * // "Linear interpolation between closest ranks" method
+             */
+            percentile: function (arr, p) {
+                if (arr.length === 0) return 0;
+                if (typeof p !== 'number') throw new TypeError('p must be a number');
+                if (p <= 0) return arr[0];
+                if (p >= 1) return arr[arr.length - 1];
+
+                var index = arr.length * p,
+                    lower = Math.floor(index),
+                    upper = lower + 1,
+                    weight = index % 1;
+
+                if (upper >= arr.length) return arr[lower];
+                return arr[lower] * (1 - weight) + arr[upper] * weight;
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
+    "use strict";
+
+    var base = $widget.Widget,
+        self = base.extend(className);
+
+    /**
+     * @name app.Galaxy
+     * @function
+     * @returns {app.Galaxy}
+     */
+
+    /**
+     * @class
+     * @extends $oop.Base
+     */
+    app.widgets.Galaxy = self
+        .addPublic(/** @lends app.widgets.ContactPage */{
+            /**
+             * @type {$widget.MarkupTemplate}
+             */
+            contentTemplate: [
+                //@formatter:off
+                '<section class="header"></section>',
+                '<section class="spec-container"></section>',
+                '<section class="img-container"></section>',
+                '<section class="detail-container"></section>'
+                //@formatter:on
+            ].join('').toMarkupTemplate()
+        })
+        .addMethods(/** @lends app.Galaxy */{
+            init: function (data) {
+                base.init.call(this);
+
+                this.setRootWidget();
+                this.data = this.addDenormalisedData(data);
+
+                widgets.Header.create(this.data.id)
+                    .setChildName('header')
+                    .setContainerCssClass('header')
+                    .addToParent(this);
+
+                var TspecMax = Math.max.apply(Math, this.data.Tspec_B.concat(this.data.Tspec_R));
+
+                [
+                    widgets.BSpecGraph.create(this.data.Tspec_B, this.data.Bwave, TspecMax)
+                        .setChildName('A-BSpecGraph'),
+                    widgets.RSpecGraph.create(this.data.Tspec_R, this.data.Rwave, TspecMax)
+                        .setChildName('R-BSpecGraph')
+                ]
+                    .toWidgetCollection()
+                    .setContainerCssClass('spec-container')
+                    .addToParent(this);
+
+                [
+                    widgets.RGBImage.create(this.data)
+                        .setChildName('A-RGB'),
+
+                    widgets.SFRImage.create(this.data)
+                        .setChildName('B-SFR'),
+
+                    widgets.VelImage.create(this.data)
+                        .setChildName('C-Vel'),
+
+                    widgets.VelDisImage.create(this.data)
+                        .setChildName('D-VelDis'),
+
+                    widgets.BPTClassImage.create(this.data)
+                        .setChildName('E-BPTClass'),
+
+                    widgets.nIIHαImage.create(this.data)
+                        .setChildName('F-nIIHα'),
+
+                    widgets.oIIIHβImage.create(this.data)
+                        .setChildName('G-oIIIHβ'),
+
+                    widgets.BPTScatterGraph.create(this.data)
+                        .setChildName('H-BPTScatter')
+                ]
+                    .toWidgetCollection()
+                    .setContainerCssClass('img-container')
+                    .addToParent(this);
+
+                widgets.Detail.create()
+                    .setChildName('detail')
+                    .setContainerCssClass('detail')
+                    .addToParent(this);
+
+                this.elevateMethods('onImageHover');
+                this.subscribeTo(widgets.Image.EVENT_PIXEL_HOVER, this.onImageHover);
+
+            },
+
+            afterRender: function () {
+                $('.sov-loader').hide();
+            },
+
+            addDenormalisedData: function (data) {
+                var map = [],
+                    point,
+                    sfr = [],
+                    vel = [],
+                    vel_dis = [],
+                    nii_ha = [],
+                    oiii_hb = [],
+                    bpt_class = [];
+
+                data.bpt_points = [];
+                data.indexed_spaxel_data = [];
+
+                // x = nii_ha
+                // y = oiii
+
+                for (var i = 0; i < data.spaxel_data.length; ++i) {
+                    point = data.spaxel_data[i];
+                    data.indexed_spaxel_data[point.x] = data.indexed_spaxel_data[point.x] || [];
+                    data.indexed_spaxel_data[point.x][point.y] = point;
+
+                    point.SspecMax = Math.max.apply(Math, point.Sspec_B.concat(point.Sspec_R));
+                    point.AspecMax = Math.max.apply(Math, point.Aspec_B.concat(point.Aspec_R));
+
+                    if (point.sfr) {
+                        sfr.push(point.sfr);
+                    }
+
+                    if (point.vel) {
+                        vel.push(point.vel);
+                    }
+
+                    if (point.vel_dis) {
+                        vel_dis.push(point.vel_dis);
+                    }
+
+                    if (point.nii_ha) {
+                        nii_ha.push(point.nii_ha);
+                    }
+
+                    if (point.oiii_hb) {
+                        oiii_hb.push(point.oiii_hb);
+                    }
+
+                    if (point.nii_ha && point.oiii_hb) {
+                        point.bpt_class = point.oiii_hb / point.nii_ha;
+                        bpt_class.push(point.bpt_class);
+                        data.bpt_points.push({
+                            x: point.x,
+                            y: point.y,
+                            oiii_hb: point.oiii_hb,
+                            nii_ha: point.nii_ha
+                        })
+                    }
+                }
+
+                vel.sort(function (a, b) {
+                    return a - b
+                });
+                sfr.sort(function (a, b) {
+                    return a - b
+                });
+                vel_dis.sort(function (a, b) {
+                    return a - b
+                });
+                nii_ha.sort(function (a, b) {
+                    return a - b
+                });
+                oiii_hb.sort(function (a, b) {
+                    return a - b
+                });
+                bpt_class.sort(function (a, b) {
+                    return a - b
+                });
+
+                data.limits = {
+                    sfr: {
+                        max: app.data.Maths.percentile(sfr, 0.95),
+                        min: app.data.Maths.percentile(sfr, 0.05)
+                    },
+                    vel: {
+                        max: app.data.Maths.percentile(vel, 0.95),
+                        min: app.data.Maths.percentile(vel, 0.05)
+                    },
+                    vel_dis: {
+                        max: app.data.Maths.percentile(vel_dis, 0.99),
+                        min: app.data.Maths.percentile(vel_dis, 0.01)
+                    },
+                    nii_ha: {
+                        max: app.data.Maths.percentile(nii_ha, 0.99),
+                        min: app.data.Maths.percentile(nii_ha, 0.01)
+                    },
+                    oiii_hb: {
+                        max: app.data.Maths.percentile(oiii_hb, 0.99),
+                        min: app.data.Maths.percentile(oiii_hb, 0.01)
+                    },
+                    bpt_class: {
+                        max: app.data.Maths.percentile(bpt_class, 0.99),
+                        min: app.data.Maths.percentile(bpt_class, 0.01)
+                    }
+                };
+
+                return data;
+            },
+
+            onImageHover: function (e) {
+                var x = e.payload.x,
+                    y = e.payload.y,
+                    indexed_spaxel_data = this.data.indexed_spaxel_data;
+
+                if (indexed_spaxel_data[x] && indexed_spaxel_data[x][y]) {
+                    this.getChild('detail').updateData(indexed_spaxel_data[x][y]);
+
+                    [
+                        widgets.BSpecGraph.create(indexed_spaxel_data[x][y].Aspec_B, this.data.Bwave, indexed_spaxel_data[x][y].AspecMax)
+                            .setChildName('A-BSpecGraph'),
+                        widgets.RSpecGraph.create(indexed_spaxel_data[x][y].Aspec_R, this.data.Rwave, indexed_spaxel_data[x][y].AspecMax)
+                            .setChildName('R-BSpecGraph')
+                    ]
+                        .toWidgetCollection()
+                        .setContainerCssClass('spec-container')
+                        .addToParent(this);
+                }
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'Header', function (widgets, className) {
+    "use strict";
+
+    var base = $widget.Widget,
+        self = base.extend(className);
+
+    /**
+     * @name app.Header
+     * @function
+     * @returns {app.Header}
+     */
+
+    /**
+     * @class
+     * @extends $widget.Widget
+     */
+    app.widgets.Header = self
+        .addMethods(/** @lends app.widgets.Header# */{
+            init: function (galaxyId) {
+                base.init.call(this);
+
+                $commonWidgets.Label.create()
+                    .setLabelText('Galaxy: ' + galaxyId)
+                    .setTagName('h2')
+                    .setChildName('header')
+                    .addToParent(this);
+
+                $commonWidgets.TextButton.create()
+                    .setCaption('Download the full data')
+                    .setTagName('a')
+                    .addAttribute('href', '/data/' + galaxyId + '.json')
+                    .setChildName('link')
+                    .addToParent(this)
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'Detail', function (widgets, className) {
+    "use strict";
+
+    var base = $widget.Widget,
+        self = base.extend(className);
+
+    /**
+     * @name app.widgets.Detail
+     * @function
+     * @returns {app.widgets.Detail}
+     */
+
+    /**
+     * @class
+     * @extends $widget.Widget
+     */
+    app.widgets.Detail = self
+        .addMethods(/** @lends app.widgets.Detail# */{
+            init: function () {
+                base.init.call(this);
+            },
+
+            afterRender: function () {
+                base.afterRender.call(this);
+            },
+
+            updateData: function (data) {
+                $(this.getElement()).html([
+                    '<dl>',
+                    '<dt>x:</dt>',
+                    '<dd>' + data.x + '</dd>',
+
+                    '<dt>y:</dt>',
+                    '<dd>' + data.y + '</dd>',
+
+                    '<dt>BPT:</dt>',
+                    '<dd>' + data.BPT + '</dd>',
+
+                    '<dt>Aperture Scalar:</dt>',
+                    '<dd>' + data.aperture_scalar + '</dd>',
+
+                    '<dt>nII Hα:</dt>',
+                    '<dd>' + data.nii_ha + '</dd>',
+
+                    '<dt>oIII Hβ:</dt>',
+                    '<dd>' + data.oiii_hb + '</dd>',
+
+                    '<dt>sfr:</dt>',
+                    '<dd>' + data.sfr + '</dd>',
+
+                    '<dt>Spaxel Scalar:</dt>',
+                    '<dd>' + data.spaxel_scalar + '</dd>',
+
+                    '<dt>Vel:</dt>',
+                    '<dd>' + data.vel + '</dd>',
+
+                    '<dt>Vel dis:</dt>',
+                    '<dd>' + data.vel_dis + '</dd>',
+                    '</dl>'
+                ].join(''));
             }
         });
 });
@@ -94,7 +459,7 @@ $oop.postpone(app.widgets, 'Point', function (widgets, className) {
                 return {r: 0, g: 0, b: 0};
             },
 
-            getField: function() {
+            getField: function () {
                 // override
             }
         });
@@ -128,7 +493,7 @@ $oop.postpone(app.widgets, 'NormalizedPoint', function (widgets, className) {
                 value = Math.min(this.max, value);
                 value = Math.max(this.min, value);
 
-                value = ((value - this.min)/(this.max - this.min));
+                value = ((value - this.min) / (this.max - this.min));
 
                 return value * 255;
             }
@@ -361,10 +726,43 @@ $oop.postpone(app.widgets, 'RGBPoint', function (widgets, className) {
         });
 });
 
+$oop.postpone(app.widgets, 'Card', function (widgets, className) {
+    "use strict";
+
+    var base = $widget.Widget,
+        self = base.extend(className);
+
+    /**
+     * @name app.Card
+     * @function
+     * @returns {app.Card}
+     */
+
+    /**
+     * @class
+     * @extends $oop.Base
+     */
+    app.widgets.Card = self
+        .addMethods(/** @lends app.Image# */{
+            init: function () {
+                base.init.call(this);
+            },
+
+            afterRender: function () {
+                base.afterRender.call(this);
+                var $target = $(this.getElement()).append('<h3>' + this.getTitle() + '</h3>');
+            },
+
+            getTitle: function () {
+                return '';
+            }
+        });
+});
+
 $oop.postpone(app.widgets, 'Image', function (widgets, className) {
     "use strict";
 
-    var base = $oop.Base,
+    var base = widgets.Card,
         self = base.extend(className);
 
     /**
@@ -375,46 +773,74 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
 
     /**
      * @class
-     * @extends $oop.Base
+     * @extends widgets.Card
+     * @extends $event.Evented
      */
     app.widgets.Image = self
+        .addConstants(/** @lends app.widgets.Animator */{
+            /** @constant */
+            EVENT_PIXEL_HOVER: 'app.widgets.Image.EVENT_PIXEL_HOVER'
+        })
         .addMethods(/** @lends app.Image# */{
             init: function (data) {
-                var html = '',
-                    x, y, color,
-                    $target = this.getContainer();
+                base.init.call(this);
+                this.data = data;
+            },
 
+            afterRender: function () {
+                base.afterRender.call(this);
+                var data = this.data;
+
+                var html = '',
+                    x, y, z, color,
+                    $target = $(this.getElement()),
+                    that = this;
+
+                html += '<div class="img">';
                 for (x = 0; x < data.width; ++x) {
                     html += '<span>';
 
                     for (y = 0; y < data.height; ++y) {
-                        color =  this.createPoint(x, y, data).getColor();
+                        color = this.createPoint(x, y, data).getColor();
                         html += '<i data-x="' + x + '" data-y="' + y + '" style="background-color: rgb(' + color.r + ',' + color.g + ',' + color.b + ')"></i>';
                     }
 
                     html += '</span>'
                 }
+                html += '</div>';
 
-                $target.html(html);
+                html += '<div class="spectrum">';
+                for (z = 0; z < 255; ++z) {
+                    color = this.getColor(z);
+                    html += '<i style="background-color: rgb(' + color.r + ',' + color.g + ',' + color.b + ')"></i>';
+                }
+                html += '</div>';
+
+                $target.append(html);
 
                 $('i', $target).on('mouseover', function (e) {
                     var x = e.currentTarget.dataset.x,
                         y = e.currentTarget.dataset.y;
 
-                    if (data.indexed_spaxel_data[x] && data.indexed_spaxel_data[x][y]) {
-                        createPointData(data.indexed_spaxel_data[x][y]);
-                        widgets.BSpecGraph.create(data.indexed_spaxel_data[x][y].Aspec_B, data.Bwave, data.indexed_spaxel_data[x][y].AspecMax);
-                        widgets.RSpecGraph.create(data.indexed_spaxel_data[x][y].Aspec_R, data.Rwave, data.indexed_spaxel_data[x][y].AspecMax);
-                    }
+                    that.spawnEvent(that.EVENT_PIXEL_HOVER)
+                        .setPayloadItems({
+                            x: x,
+                            y: y
+                        })
+                        .triggerSync();
                 });
-            },
-
-            getContainer: function () {
-                // override
             },
 
             createPoint: function (x, y, map) {
                 // override
+            },
+
+            getTitle: function () {
+                return '';
+            },
+
+            getColor: function (index) {
+                return {r: 0, g: 0, b: 0};
             }
         });
 });
@@ -437,17 +863,17 @@ $oop.postpone(app.widgets, 'RGBImage', function (widgets, className) {
      */
     app.widgets.RGBImage = self
         .addMethods(/** @lends app.Image# */{
-            createPoint: function (x, y, map) {
-                return widgets.RGBPoint.create(x, y, map);
+            getTitle: function () {
+                return 'RGB';
             },
 
-            getContainer: function () {
-                return $('.rgb');
+            createPoint: function (x, y, map) {
+                return widgets.RGBPoint.create(x, y, map);
             }
         });
 });
 
-$oop.postpone(app.widgets, 'SFRImage', function (widgets, className) {
+$oop.postpone(app.widgets, 'SFRImage', function (widgets, className, data) {
     "use strict";
 
     var base = widgets.Image,
@@ -465,17 +891,21 @@ $oop.postpone(app.widgets, 'SFRImage', function (widgets, className) {
      */
     app.widgets.SFRImage = self
         .addMethods(/** @lends app.Image# */{
+            getTitle: function () {
+                return 'SFR';
+            },
+
             createPoint: function (x, y, map) {
                 return widgets.SFRPoint.create(x, y, map);
             },
 
-            getContainer: function () {
-                return $('.sfr');
+            getColor: function (index) {
+                return data.Spectrum.RdBl(index);
             }
         });
-});
+}, app.data);
 
-$oop.postpone(app.widgets, 'VelImage', function (widgets, className) {
+$oop.postpone(app.widgets, 'VelImage', function (widgets, className, data) {
     "use strict";
 
     var base = widgets.Image,
@@ -493,17 +923,21 @@ $oop.postpone(app.widgets, 'VelImage', function (widgets, className) {
      */
     app.widgets.VelImage = self
         .addMethods(/** @lends app.Image# */{
+            getTitle: function () {
+                return 'VEL';
+            },
+
             createPoint: function (x, y, map) {
                 return widgets.VelPoint.create(x, y, map);
             },
 
-            getContainer: function () {
-                return $('.vel');
+            getColor: function (index) {
+                return data.Spectrum.RdYlBu(index);
             }
         });
-});
+}, app.data);
 
-$oop.postpone(app.widgets, 'VelDisImage', function (widgets, className) {
+$oop.postpone(app.widgets, 'VelDisImage', function (widgets, className, data) {
     "use strict";
 
     var base = widgets.Image,
@@ -521,17 +955,21 @@ $oop.postpone(app.widgets, 'VelDisImage', function (widgets, className) {
      */
     app.widgets.VelDisImage = self
         .addMethods(/** @lends app.Image# */{
+            getTitle: function () {
+                return 'VEL DIS';
+            },
+
             createPoint: function (x, y, map) {
                 return widgets.VelDisPoint.create(x, y, map);
             },
 
-            getContainer: function () {
-                return $('.vel_dis');
+            getColor: function (index) {
+                return data.Spectrum.RdBl(index);
             }
         });
-});
+}, app.data);
 
-$oop.postpone(app.widgets, 'BPTClassImage', function (widgets, className) {
+$oop.postpone(app.widgets, 'BPTClassImage', function (widgets, className, data) {
     "use strict";
 
     var base = widgets.Image,
@@ -549,17 +987,21 @@ $oop.postpone(app.widgets, 'BPTClassImage', function (widgets, className) {
      */
     app.widgets.BPTClassImage = self
         .addMethods(/** @lends app.Image# */{
+            getTitle: function () {
+                return 'BTP';
+            },
+
             createPoint: function (x, y, map) {
                 return widgets.BPTClassPoint.create(x, y, map);
             },
 
-            getContainer: function () {
-                return $('.BPT');
+            getColor: function (index) {
+                return data.Spectrum.RdBl(index);
             }
         });
-});
+}, app.data);
 
-$oop.postpone(app.widgets, 'nIIHαImage', function (widgets, className) {
+$oop.postpone(app.widgets, 'nIIHαImage', function (widgets, className, data) {
     "use strict";
 
     var base = widgets.Image,
@@ -577,17 +1019,21 @@ $oop.postpone(app.widgets, 'nIIHαImage', function (widgets, className) {
      */
     app.widgets.nIIHαImage = self
         .addMethods(/** @lends app.Image# */{
+            getTitle: function () {
+                return 'nII Hα';
+            },
+
             createPoint: function (x, y, map) {
                 return widgets.nIIHαPoint.create(x, y, map);
             },
 
-            getContainer: function () {
-                return $('.nii_ha');
+            getColor: function (index) {
+                return data.Spectrum.RdBl(index);
             }
         });
-});
+}, app.data);
 
-$oop.postpone(app.widgets, 'oIIIHβImage', function (widgets, className) {
+$oop.postpone(app.widgets, 'oIIIHβImage', function (widgets, className, data) {
     "use strict";
 
     var base = widgets.Image,
@@ -605,20 +1051,24 @@ $oop.postpone(app.widgets, 'oIIIHβImage', function (widgets, className) {
      */
     app.widgets.oIIIHβImage = self
         .addMethods(/** @lends app.Image# */{
+            getTitle: function () {
+                return 'oIII Hβ';
+            },
+
             createPoint: function (x, y, map) {
                 return widgets.oIIIHβPoint.create(x, y, map);
             },
 
-            getContainer: function () {
-                return $('.oiii_hb');
+            getColor: function (index) {
+                return data.Spectrum.BuBl(index);
             }
         });
-});
+}, app.data);
 
 $oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
     "use strict";
 
-    var base = widgets.Image,
+    var base = widgets.Card,
         self = base.extend(className);
 
     /**
@@ -634,54 +1084,78 @@ $oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
     app.widgets.BPTScatterGraph = self
         .addMethods(/** @lends app.Image# */{
             init: function (data) {
-                var points = data.bpt_points.map(function (value) { return {
-                    name: 'x:' + value.x +  ', y:' + value.y,
-                    x: value.oiii_hb,
-                    y: value.nii_ha
-                }});
+                base.init.call(this);
+                this.data = data;
+            },
 
+            afterRender: function () {
+                base.afterRender.call(this);
 
-                var current = $('.bpt-scatter').highcharts();
+                var data = this.data;
+
+                var points = data.bpt_points.map(function (value) {
+                        return {
+                            name: 'x:' + value.x + ', y:' + value.y,
+                            x: value.oiii_hb,
+                            y: value.nii_ha
+                        }
+                    }),
+                    $container = $(this.getElement()),
+                    $img = $('<div class="img"></div>');
+
+                $container.append($img);
+
+                var current = $img.highcharts();
                 if (current) {
                     current.destroy();
                 }
 
-                $('.bpt-scatter').highcharts({
-                    chart: {
-                        type: 'scatter',
-                        zoomType: 'xy'
-                    },
-                    title: null,
-                    xAxis: {
-                        title: {
-                            enabled: true,
-                            text: "oIII Hβ"
-                        }
-                    },
-                    yAxis: {
-                        title: {
-                            enabled: true,
-                            text: "nII Hα"
-                        }
-                    },
-                    plotOptions: {
-                        scatter: {
-                            tooltip: {
-                                headerFormat: '',
-                                pointFormat: '{point.name}, oIII Hβ {point.x}, nII Hα {point.y}'
-                            },
-                            marker: {
-                                radius: 1
+                // need to delay to make sure that it fits in the right box
+                setTimeout(function () {
+                    $img.highcharts({
+                        chart: {
+                            type: 'scatter',
+                            zoomType: 'xy'
+                        },
+                        title: null,
+                        xAxis: {
+                            title: {
+                                enabled: true,
+                                text: "oIII Hβ"
                             }
-                        }
-                    },
-                    credits: {
-                        enabled: false
-                    },
-                    series: [{
-                        data: points
-                    }]
-                })
+                        },
+                        yAxis: {
+                            title: {
+                                enabled: true,
+                                text: "nII Hα"
+                            }
+                        },
+                        plotOptions: {
+                            scatter: {
+                                tooltip: {
+                                    headerFormat: '',
+                                    pointFormat: '{point.name}, oIII Hβ {point.x}, nII Hα {point.y}'
+                                },
+                                marker: {
+                                    radius: 1
+                                }
+                            }
+                        },
+                        credits: {
+                            enabled: false
+                        },
+                        legend: {
+                            enabled: false
+                        },
+                        series: [{
+                            data: points
+                        }]
+                    })
+                }, 0);
+            },
+
+            getTitle: function () {
+                return 'BTP Scatter';
             }
         });
 });
@@ -689,23 +1163,37 @@ $oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
 $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
     "use strict";
 
-    var base = $oop.Base,
+    var base = $widget.Widget,
         self = base.extend(className);
 
     /**
-     * @name app.Spec
+     * @name app.widgets.SpecGraph
      * @function
-     * @returns {app.Spec}
+     * @returns {app.widgets.SpecGraph}
      */
 
     /**
      * @class
-     * @extends $oop.Base
+     * @extends $widget.Widget
      */
     app.widgets.SpecGraph = self
         .addMethods(/** @lends app.Image# */{
             init: function (spec, wave, xMax) {
-                var $container = this.getContainer();
+                base.init.call(this);
+
+                this.spec = spec;
+                this.wave = wave;
+                this.xMax = xMax;
+            },
+
+            afterRender: function () {
+                base.afterRender.call(this);
+
+                var spec = this.spec,
+                    wave = this.wave,
+                    xMax = this.xMax;
+
+                var $container = $(this.getElement());
                 var title = this.getTitle();
 
                 var detailChart,
@@ -735,12 +1223,6 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                             detailData.push(this.y);
                         }
                     });
-
-                    // create a detail chart referenced by a global variable
-                    var current = $detailContainer.highcharts();
-                    if (current) {
-                        current.destroy();
-                    }
 
                     detailChart = $detailContainer.highcharts({
                         credits: {
@@ -794,10 +1276,6 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
 
                 // create the master chart
                 function createMaster($masterContiner, $detailContainer) {
-                    var current = $masterContiner.highcharts();
-                    if (current) {
-                        current.destroy();
-                    }
 
                     $masterContiner.highcharts({
                             chart: {
@@ -913,6 +1391,14 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
 
                 // create master and in its callback, create the detail chart
                 createMaster($masterContainer, $detailContainer);
+            },
+
+            removeFromParent: function () {
+                $(this.getElement()).children().each(function () {
+                    $(this).highcharts().destroy();
+                });
+
+                base.removeFromParent.call(this);
             }
         });
 });
@@ -985,176 +1471,3 @@ $oop.postpone(app.widgets, 'RSpecGraph', function (widgets, className) {
         }
     });
 })();
-
-var render = function (data) {
-    var data = addDenormalisedData(data);
-
-    $('h2').html('Galaxy: ' + data.id);
-
-    var TspecMax = Math.max.apply(Math, data.Tspec_B.concat(data.Tspec_R));
-
-    app.widgets.BSpecGraph.create(data.Tspec_B, data.Bwave, TspecMax);
-    app.widgets.RSpecGraph.create(data.Tspec_R, data.Rwave, TspecMax);
-
-    app.widgets.RGBImage.create(data);
-    app.widgets.SFRImage.create(data);
-    app.widgets.VelImage.create(data);
-    app.widgets.VelDisImage.create(data);
-    app.widgets.BPTClassImage.create(data);
-    app.widgets.nIIHαImage.create(data);
-    app.widgets.oIIIHβImage.create(data);
-
-    app.widgets.BPTScatterGraph.create(data);
-
-    $('.sov-loader').hide();
-    $('.sov').show();
-};
-
-// Returns the value at a given percentile in a sorted numeric array.
-// "Linear interpolation between closest ranks" method
-function percentile(arr, p) {
-    if (arr.length === 0) return 0;
-    if (typeof p !== 'number') throw new TypeError('p must be a number');
-    if (p <= 0) return arr[0];
-    if (p >= 1) return arr[arr.length - 1];
-
-    var index = arr.length * p,
-        lower = Math.floor(index),
-        upper = lower + 1,
-        weight = index % 1;
-
-    if (upper >= arr.length) return arr[lower];
-    return arr[lower] * (1 - weight) + arr[upper] * weight;
-}
-
-var addDenormalisedData = function (data) {
-    var map = [],
-        point,
-        sfr = [],
-        vel = [],
-        vel_dis = [],
-        nii_ha = [],
-        oiii_hb = [],
-        bpt_class = [];
-
-
-    data.bpt_points = [];
-    data.indexed_spaxel_data = [];
-
-    // x = nii_ha
-    // y = oiii
-
-    for (var i = 0; i < data.spaxel_data.length; ++i) {
-        point = data.spaxel_data[i];
-        data.indexed_spaxel_data[point.x] = data.indexed_spaxel_data[point.x] || [];
-        data.indexed_spaxel_data[point.x][point.y] = point;
-
-        point.SspecMax = Math.max.apply(Math, point.Sspec_B.concat(point.Sspec_R));
-        point.AspecMax = Math.max.apply(Math, point.Aspec_B.concat(point.Aspec_R));
-
-        if (point.sfr) {
-            sfr.push(point.sfr);
-        }
-
-        if (point.vel) {
-            vel.push(point.vel);
-        }
-
-        if (point.vel_dis) {
-            vel_dis.push(point.vel_dis);
-        }
-
-        if (point.nii_ha) {
-            nii_ha.push(point.nii_ha);
-        }
-
-        if (point.oiii_hb) {
-            oiii_hb.push(point.oiii_hb);
-        }
-
-        if (point.nii_ha && point.oiii_hb) {
-            point.bpt_class = point.oiii_hb/point.nii_ha;
-            bpt_class.push(point.bpt_class);
-            data.bpt_points.push({
-                x: point.x,
-                y: point.y,
-                oiii_hb: point.oiii_hb,
-                nii_ha: point.nii_ha
-            })
-        }
-    }
-
-    vel.sort(function(a,b){return a - b});
-    sfr.sort(function(a,b){return a - b});
-    vel_dis.sort(function(a,b){return a - b});
-    nii_ha.sort(function(a,b){return a - b});
-    oiii_hb.sort(function(a,b){return a - b});
-    bpt_class.sort(function(a,b){return a - b});
-
-    data.limits = {
-        sfr: {
-            max: percentile(sfr, 0.95),
-            min: percentile(sfr, 0.05)
-        },
-        vel: {
-            max: percentile(vel, 0.95),
-            min: percentile(vel, 0.05)
-        },
-        vel_dis: {
-            max: percentile(vel_dis, 0.99),
-            min: percentile(vel_dis, 0.01)
-        },
-        nii_ha: {
-            max: percentile(nii_ha, 0.99),
-            min: percentile(nii_ha, 0.01)
-        },
-        oiii_hb: {
-            max: percentile(oiii_hb, 0.99),
-            min: percentile(oiii_hb, 0.01)
-        },
-        bpt_class: {
-            max: percentile(bpt_class, 0.99),
-            min: percentile(bpt_class, 0.01)
-        }
-    };
-
-    return data;
-};
-
-
-
-var createPointData = function (data) {
-    $('.point').html([
-        '<dl>',
-            '<dt>x:</dt>',
-            '<dd>' + data.x + '</dd>',
-
-            '<dt>y:</dt>',
-            '<dd>' + data.y + '</dd>',
-
-            '<dt>BPT:</dt>',
-            '<dd>' + data.BPT + '</dd>',
-
-            '<dt>Aperture Scalar:</dt>',
-            '<dd>' + data.aperture_scalar + '</dd>',
-
-            '<dt>nII Hα:</dt>',
-            '<dd>' + data.nii_ha + '</dd>',
-
-            '<dt>oIII Hβ:</dt>',
-            '<dd>' + data.oiii_hb + '</dd>',
-
-            '<dt>sfr:</dt>',
-            '<dd>' + data.sfr + '</dd>',
-
-            '<dt>Spaxel Scalar:</dt>',
-            '<dd>' + data.spaxel_scalar + '</dd>',
-
-            '<dt>Vel:</dt>',
-            '<dd>' + data.vel + '</dd>',
-
-            '<dt>Vel dis:</dt>',
-            '<dd>' + data.vel_dis + '</dd>',
-        '</dl>'
-    ].join(''));
-};

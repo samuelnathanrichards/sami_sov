@@ -1,0 +1,26 @@
+.SpecGraph {
+    border-radius: 2px;
+    border: 1px solid #464646;
+}
+
+.SpecGraph {
+    float: left;
+    position: relative;
+    overflow: hidden;
+}
+
+.SpecGraph {
+    height: 300px;
+    position: relative;
+    width: calc(50% - 16px);
+    margin: 0 8px;
+}
+
+
+@media (max-width: 1000px) {
+    .SpecGraph {
+        width: calc(100% - 16px);
+        float: none;
+        margin-bottom: 16px;
+    }
+}

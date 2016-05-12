@@ -7,9 +7,12 @@
 
         <title>SAMI Galaxy Survey - Single Object Viewer</title>
 
-        <link rel="stylesheet" href="css/bootstrap.css" />
-        <link rel="stylesheet" href="css/bootstrap-theme.css" />
+        <link rel="stylesheet" href="css/lib/bootstrap.css" />
+        <link rel="stylesheet" href="css/lib/bootstrap-theme.css" />
+        <link rel="stylesheet" href="css/lib/giant-common-widgets.css" />
         <link rel="stylesheet" href="css/default.css" />
+        <link rel="stylesheet" href="css/Galaxy.css" />
+        <link rel="stylesheet" href="css/SpecGraph.css" />
     </head>
 
     <body class="container">
@@ -18,67 +21,19 @@
         <h1>SAMI Single Object Viewer</h1>
 
         <strong class="sov-loader">Loading...</strong>
-        <section class="sov">
-            <header>
-                <h2></h2>
-                <a href="#">Download full data</a>
-            </header>
 
-            <div class="point"></div>
 
-            <div class="spec">
-                <div class="b-spec"></div>
-                <div class="r-spec"></div>
-            </div>
-
-            <div class="img">
-                <div>
-                    <h3>RGB</h3>
-                    <div class="rgb"></div>
-                </div>
-
-                <div>
-                    <h3>SFR</h3>
-                    <div class="sfr"></div>
-                </div>
-
-                <div>
-                    <h3>VEL</h3>
-                    <div class="vel"></div>
-                </div>
-
-                <div>
-                    <h3>VEL DIS</h3>
-                    <div class="vel_dis"></div>
-                </div>
-
-                <div>
-                    <h3>BPT</h3>
-                    <div class="BPT"></div>
-                </div>
-
-                <div>
-                    <h3>nII Hα</h3>
-                    <div class="nii_ha"></div>
-                </div>
-
-                <div>
-                    <h3>oIII Hβ</h3>
-                    <div class="oiii_hb"></div>
-                </div>
-
-                <div>
-                    <h3>BPT</h3>
-                    <div class="bpt-scatter"></div>
-                </div>
-            </div>
-        </section>
-
-        <script src="js/jquery-2.2.3.js"></script>
-        <script src="js/highcharts.js"></script>
-        <script src="js/require.js"></script>
-        <script src="js/giant-assertion.js"></script>
-        <script src="js/giant-oop.js"></script>
+        <script src="js/lib/jquery-2.2.3.js"></script>
+        <script src="js/lib/highcharts.js"></script>
+        <script src="js/lib/giant-assertion.js"></script>
+        <script src="js/lib/giant-oop.js"></script>
+        <script src="js/lib/giant-data.js"></script>
+        <script src="js/lib/giant-utils.js"></script>
+        <script src="js/lib/giant-event.js"></script>
+        <script src="js/lib/giant-templating.js"></script>
+        <script src="js/lib/giant-widget.js"></script>
+        <script src="js/lib/giant-entity.js"></script>
+        <script src="js/lib/giant-common-widgets.js"></script>
 
         <script src="js/default.js"></script>
 

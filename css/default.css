@@ -23,10 +23,6 @@
 
 }
 
-.sov {
-    display: none;
-}
-
 h1 {
     color: #df0010;
     font-size: 50px;
@@ -43,14 +39,14 @@ h1 {
 }
 
 
-.img span {
+.img-container .img span {
     display: block;
     height: 2%;
     padding: 0;
     margin: 0;
 }
 
-.img span i {
+.img-container .img span i {
     padding: 0;
     margin: 0;
     display: block;
@@ -59,29 +55,59 @@ h1 {
     height: 100%;
 }
 
-.spec,
-.img {
+.img-container > div {
+    height: 0;
+    padding-bottom: calc(25% + 84px);
+    width: calc(25% - 16px);
+    margin: 8px;
+}
+
+.img-container > div .img {
+    top: 24px;
+    bottom: 60px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+}
+
+.img-container h3 {
+    margin: 0 2px;
+}
+
+.img-container .spectrum {
+    position: absolute;
+    height: 30px;
+    left: 0;
+    right: 0;
+    bottom: 10px;
+}
+
+.img-container .spectrum i {
+    display: inline-block;
+    width: calc(100% / 255);
+    height: 100%;
+}
+
+.img-container {
     margin: 16px -8px;
     word-wrap: break-word;
     overflow: hidden;
 }
 
-.spec:after,
-.img:after {
+.img-container:after {
     content: "";
     display: block;
     clear: both;
 }
 
 .point,
-.img > div,
-.spec > div {
+.img-container > div {
     border-radius: 2px;
     border: 1px solid #464646;
 }
 
-.img > div,
-.spec > div {
+.img-container > div {
     float: left;
     position: relative;
     overflow: hidden;
@@ -102,49 +128,16 @@ h1 {
     clear: both;
 }
 
-.spec > div {
-    height: 300px;
-    position: relative;
-    width: calc(50% - 16px);
-    margin: 0 8px;
-}
-
-.img > div {
-    height: 0;
-    padding-bottom: calc(24px + 25%);
-    width: calc(25% - 16px);
-    margin: 8px;
-}
-
-.img > div > div {
-    padding: 2px;
-    top: 24px;
-    bottom: 0;
-    position: absolute;
-    left: 0;
-    right: 0;
-}
-
-.img h3 {
-    margin: 0 2px;
-}
-
 @media (max-width: 1000px) {
-    .spec > div {
-        width: calc(100% - 16px);
-        float: none;
-        margin-bottom: 16px;
-    }
-
-    .img > div {
-        padding-bottom: calc(24px + 50%);
+    .img-container > div {
+        padding-bottom: calc(50% + 84px);
         width: calc(50% - 16px);
     }
 }
 
 @media (max-width: 500px) {
-    .img > div {
-        padding-bottom: calc(24px + 100%);
+    .img-container > div {
+        padding-bottom: calc(100% + 84px);
         width: calc(100% - 16px);
     }
 }
