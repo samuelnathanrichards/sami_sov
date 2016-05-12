@@ -2,18 +2,10 @@ var app = {};
 app.data = app.data || {};
 app.widgets = app.widgets || {};
 
-$.ajax(
-    'data/91924.json',
-    {
-        success: function (data) {
-            app.widgets.Galaxy.create(data)
-                .afterAdd();
-        },
-        error: function (data) {
-            console.log(arguments);
-        }
-    }
-);
+$(document).ready(function (){
+    app.widgets.SOVPage.create()
+        .setRootWidget();
+});
 
 $oop.postpone(app.data, 'Spectrum', function (data, className) {
     "use strict";
@@ -105,6 +97,91 @@ $oop.postpone(app.data, 'Maths', function (data, className) {
         });
 });
 
+$oop.postpone(app.widgets, 'SOVPage', function (widgets, className) {
+    "use strict";
+
+    var base = $widget.Widget,
+        self = base.extend(className);
+
+    /**
+     * @name app.SOVPage
+     * @function
+     * @returns {app.widgets.SOVPage}
+     */
+
+    /**
+     * @class
+     * @extends $widget.Widget
+     */
+    app.widgets.SOVPage = self
+        .addMethods(/** @lends app.Galaxy */{
+            init: function (data) {
+                base.init.call(this);
+                var that = this;
+
+                $commonWidgets.Label.create()
+                    .setLabelText('Loading...')
+                    .setChildName('strong')
+                    .setChildName('A-loading')
+                    .addToParent(this);
+
+                $.ajax(
+                    'data/all_galaxies.json',
+                    {
+                        success: function (data) {
+                            app.widgets.GalaxyList.create(data)
+                                .setChildName('B-galaxyList')
+                                .addToParent(that);
+
+                            that.hideLoader();
+                        },
+                        error: function (data) {
+                            console.log(arguments);
+                        }
+                    }
+                );
+
+                this.elevateMethods('onClick');
+                this.subscribeTo($commonWidgets.EVENT_BUTTON_CLICK, this.onClick)
+            },
+
+            hideLoader: function () {
+                $(this.getChild('A-loading').getElement()).hide();
+            },
+
+            showLoader: function () {
+                $(this.getChild('A-loading').getElement()).show();
+            },
+
+            onClick: function (e) {
+                var that = this;
+                var galaxyId = e.payload.galaxyId;
+
+                this.showLoader();
+
+                if (this.getChild('C-galaxy')) {
+                    this.getChild('C-galaxy').removeFromParent();
+                }
+
+                $.ajax(
+                    'data/' + galaxyId + '.json',
+                    {
+                        success: function (data) {
+                            app.widgets.Galaxy.create(data)
+                                .setChildName('C-galaxy')
+                                .addToParent(that);
+
+                            that.hideLoader();
+                        },
+                        error: function (data) {
+                            console.log(arguments);
+                        }
+                    }
+                );
+            }
+        });
+});
+
 $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
     "use strict";
 
@@ -139,7 +216,6 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
             init: function (data) {
                 base.init.call(this);
 
-                this.setRootWidget();
                 this.data = this.addDenormalisedData(data);
 
                 widgets.Header.create(this.data.id)
@@ -190,16 +266,12 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
 
                 widgets.Detail.create()
                     .setChildName('detail')
-                    .setContainerCssClass('detail')
+                    .setContainerCssClass('detail-container')
                     .addToParent(this);
 
                 this.elevateMethods('onImageHover');
                 this.subscribeTo(widgets.Image.EVENT_PIXEL_HOVER, this.onImageHover);
 
-            },
-
-            afterRender: function () {
-                $('.sov-loader').hide();
             },
 
             addDenormalisedData: function (data) {
@@ -329,6 +401,105 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
         });
 });
 
+$oop.postpone(app.widgets, 'GalaxyList', function (widgets, className) {
+    "use strict";
+
+    var base = $widget.Widget,
+        self = base.extend(className);
+
+    /**
+     * @name app.GalaxyList
+     * @function
+     * @returns {app.GalaxyList}
+     */
+
+    /**
+     * @class
+     * @extends $oop.Base
+     */
+    app.widgets.GalaxyList = self
+        .addMethods(/** @lends app.Galaxy */{
+            init: function (data) {
+                base.init.call(this);
+                this.setTagName('ul');
+
+                for (var index in data) {
+                    if (data.hasOwnProperty(index)) {
+                        widgets.GalaxyListItem.create(data[index])
+                            .setChildName('item-' + data[index].id)
+                            .addToParent(this);
+                    }
+                }
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'GalaxyListItem', function (widgets, className) {
+    "use strict";
+
+    var base = $commonWidgets.Button,
+        self = base.extend(className);
+
+    /**
+     * @name app.widgets.GalaxyListItem
+     * @function
+     * @returns {app.widgets.GalaxyListItem}
+     */
+
+    /**
+     * @class
+     * @extends $commonWidgets.Button
+     */
+    app.widgets.GalaxyListItem = self
+        .addMethods(/** @lends app.widgets.GalaxyListItem */{
+            init: function (data) {
+                base.init.call(this);
+
+                this.setTagName('li');
+
+                [
+                    $commonWidgets.Label.create()
+                        .setLabelText(data.id)
+                        .setChildName('A-id'),
+
+                    $commonWidgets.Label.create()
+                        .setLabelText(data.DEC)
+                        .setChildName('B-DEC'),
+
+                    $commonWidgets.Label.create()
+                        .setLabelText(data.Ms)
+                        .setChildName('C-Ms'),
+
+                    $commonWidgets.Label.create()
+                        .setLabelText(data.RA)
+                        .setChildName('D-RA'),
+
+                    $commonWidgets.Label.create()
+                        .setLabelText(data.Re)
+                        .setChildName('E-Re'),
+
+                    $commonWidgets.Label.create()
+                        .setLabelText(data.Z)
+                        .setChildName('F-Z'),
+
+                    $commonWidgets.Label.create()
+                        .setLabelText(data.psf)
+                        .setChildName('G-psf')
+                ]
+                    .toWidgetCollection()
+                    .addToParent(this);
+            },
+
+            onClick: function () {
+                this.spawnEvent($commonWidgets.EVENT_BUTTON_CLICK)
+                    .setPayloadItems({
+                        galaxyId: 91924
+                    })
+                    .triggerSync();
+            }
+        });
+});
+
 $oop.postpone(app.widgets, 'Header', function (widgets, className) {
     "use strict";
 
@@ -384,14 +555,6 @@ $oop.postpone(app.widgets, 'Detail', function (widgets, className) {
      */
     app.widgets.Detail = self
         .addMethods(/** @lends app.widgets.Detail# */{
-            init: function () {
-                base.init.call(this);
-            },
-
-            afterRender: function () {
-                base.afterRender.call(this);
-            },
-
             updateData: function (data) {
                 $(this.getElement()).html([
                     '<dl>',

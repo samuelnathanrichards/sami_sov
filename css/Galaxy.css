@@ -9,3 +9,106 @@
     display: block;
     clear: both;
 }
+
+.Galaxy .img-container .img span {
+    display: block;
+    height: 2%;
+    padding: 0;
+    margin: 0;
+}
+
+.Galaxy .img-container .img span i {
+    padding: 0;
+    margin: 0;
+    display: block;
+    float: left;
+    width: 2%;
+    height: 100%;
+}
+
+.Galaxy .img-container > div {
+    height: 0;
+    padding-bottom: calc(25% + 84px);
+    width: calc(25% - 16px);
+    margin: 8px;
+}
+
+.Galaxy .img-container > div .img {
+    top: 24px;
+    bottom: 60px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+}
+
+.Galaxy .img-container h3 {
+    margin: 0 2px;
+}
+
+.Galaxy .img-container .spectrum {
+    position: absolute;
+    height: 30px;
+    left: 0;
+    right: 0;
+    bottom: 10px;
+}
+
+.Galaxy .img-container .spectrum i {
+    display: inline-block;
+    width: calc(100% / 255);
+    height: 100%;
+}
+
+.Galaxy .img-container {
+    margin: 16px -8px;
+    word-wrap: break-word;
+    overflow: hidden;
+}
+
+.Galaxy .img-container:after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+.Galaxy .img-container .point,
+.Galaxy .img-container > div {
+    border-radius: 2px;
+    border: 1px solid #464646;
+}
+
+.Galaxy .img-container > div {
+    float: left;
+    position: relative;
+    overflow: hidden;
+}
+
+.Galaxy .img-container .point {
+    padding: 10px;
+    height: 220px;
+}
+
+.Galaxy .img-container .point dd {
+    padding-left: 10px;
+    float: left;
+}
+
+.Galaxy .img-container .point dt {
+    float: left;
+    clear: both;
+}
+
+@media (max-width: 1000px) {
+    .Galaxy .img-container > div {
+        padding-bottom: calc(50% + 84px);
+        width: calc(50% - 16px);
+    }
+}
+
+@media (max-width: 500px) {
+    .Galaxy .img-container > div {
+        padding-bottom: calc(100% + 84px);
+        width: calc(100% - 16px);
+    }
+}
