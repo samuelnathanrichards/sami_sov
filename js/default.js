@@ -1,132 +1,6 @@
-
-
-Array.max = function( array ){
-    return Math.max.apply( Math, array );
-};
-
-Array.min = function( array ){
-    return Math.min.apply( Math, array );
-};
-
-var spectrum = {
-    RdBl: function (val) {
-        return {r: Math.round(val), g: 0, b: 0};
-    },
-
-    RdGrBu: function (val) {
-        var color = {r: 0, g: 0, b: 0};
-
-        if (val < 255/2) {
-             color.r = Math.round(255 - (val * 2));
-        }
-
-        color.g = Math.round(255 - Math.abs((val * 2) - 255));
-        color.r = color.r + Math.round(255 - Math.abs((val * 2) - 255));
-
-        if (val > 255/2) {
-            color.b = Math.round((val * 2) - 255);
-        }
-
-        return color;
-    }
-};
-
-var color = {
-    rgb: function (x, y, dd) {
-        var point;
-
-        if (dd.map[x] && dd.map[x][y]) {
-            point = dd.map[x][y];
-        }
-
-        // "rgb": [0,0,0]
-        //return {r: point.rgb[0], g: point.rgb[1], b: point.rgb[2]};
-        return {r: 0, g: 0, b: 0}
-    },
-
-    sfr: function (x, y, dd) {
-        var sfr = false;
-
-        if (dd.map[x] && dd.map[x][y]) {
-            sfr = dd.map[x][y].vel;
-        }
-
-        if (sfr === false) {
-            return {r: 0, g: 0, b: 0};
-        }
-
-        return spectrum.RdGrBu(normalize(sfr, dd.sfr.max, dd.sfr.min));
-    },
-
-    BPT: function (x, y, map) {
-        return {r: 0, g: 0, b: 0}
-    },
-
-    nii_ha: function (x, y, dd) {
-        var nii_ha = false;
-
-        if (dd.map[x] && dd.map[x][y]) {
-            nii_ha = dd.map[x][y].vel;
-        }
-
-        if (nii_ha === false) {
-            return {r: 0, g: 0, b: 0};
-        }
-
-        return spectrum.RdGrBu(normalize(nii_ha, dd.nii_ha.max, dd.nii_ha.min));
-    },
-
-    oiii_hb: function (x, y, dd) {
-        var oiii_hb = false;
-
-        if (dd.map[x] && dd.map[x][y]) {
-            oiii_hb = dd.map[x][y].vel;
-        }
-
-        if (!oiii_hb) {
-            return {r: 0, g: 0, b: 0};
-        }
-
-        return spectrum.RdGrBu(normalize(oiii_hb, dd.oiii_hb.max, dd.oiii_hb.min));
-    },
-
-    vel: function (x, y, dd) {
-        var vel = false;
-
-        if (dd.map[x] && dd.map[x][y]) {
-            vel = dd.map[x][y].vel;
-        }
-
-        if (vel === false) {
-            return {r: 0, g: 0, b: 0};
-        }
-        return spectrum.RdGrBu(normalize(vel, dd.vel.max, dd.vel.min));
-
-    },
-
-    vel_dis: function (x, y, dd) {
-        var vel_dis = 0;
-
-        if (dd.map[x] && dd.map[x][y]) {
-            vel_dis = dd.map[x][y].vel_dis;
-        }
-
-        if (!vel_dis) {
-            return {r: 0, g: 0, b: 0};
-        }
-
-        return spectrum.RdBl(normalize(vel_dis, dd.vel_dis.max, dd.vel_dis.min));
-    }
-};
-
-function normalize(value, max, min) {
-    value = Math.min(max, value);
-    value = Math.max(min, value);
-
-    value = ((value - min)/(max - min));
-
-    return value * 255;
-}
+var app = {};
+app.data = app.data || {};
+app.widgets = app.widgets || {};
 
 $.ajax(
     'data/91924.json',
@@ -140,11 +14,613 @@ $.ajax(
     }
 );
 
+$oop.postpone(app.data, 'Spectrum', function (data, className) {
+    "use strict";
+
+    var base = $oop.Base,
+        self = base.extend(className);
+
+    /**
+     * @name app.Spectrum
+     * @function
+     * @returns {app.Spectrum}
+     */
+
+    /**
+     * @class
+     * @extends app.Spectrum
+     */
+    app.data.Spectrum = self
+        .addMethods(/** @lends app.Spectrum# */{
+            RdBl: function (val) {
+                $assertion.isUnsigned8Bit(val);
+
+                return {r: Math.round(val), g: 0, b: 0};
+            },
+
+            RdYlBu: function (val) {
+                $assertion.isUnsigned8Bit(val);
+
+                var color = {r: 0, g: 0, b: 0};
+
+                if (val < 255/2) {
+                    color.r = Math.round(255 - (val * 2));
+                }
+
+                color.g = Math.round(255 - Math.abs((val * 2) - 255));
+                color.r = color.r + Math.round(255 - Math.abs((val * 2) - 255));
+
+                if (val > 255/2) {
+                    color.b = Math.round((val * 2) - 255);
+                }
+
+                return color;
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'Point', function (widgets, className) {
+    "use strict";
+
+    var base = $oop.Base,
+        self = base.extend(className);
+
+    /**
+     * @name app.Point
+     * @function
+     * @returns {app.Point}
+     */
+
+    /**
+     * @class
+     * @extends $oop.Base
+     */
+    app.widgets.Point = self
+        .addMethods(/** @lends app.Image# */{
+            init: function (x, y, dd) {
+                this.x = x;
+                this.y = y;
+
+                this.value = dd.map[x] && dd.map[x][y] ? dd.map[x][y][this.getField()] : null;
+            },
+
+            getColor: function () {
+                return {r: 0, g: 0, b: 0};
+            },
+
+            getField: function() {
+                // override
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'NormalizedPoint', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.Point,
+        self = base.extend(className);
+
+    /**
+     * @name app.NormalizedPoint
+     * @function
+     * @returns {app.NormalizedPoint}
+     */
+
+    /**
+     * @class
+     * @extends $oop.Base
+     */
+    app.widgets.NormalizedPoint = self
+        .addMethods(/** @lends app.Image# */{
+            init: function (x, y, dd) {
+                base.init.call(this, x, y, dd);
+                this.max = dd[this.getField()].max;
+                this.min = dd[this.getField()].min;
+            },
+
+            normalize: function (value) {
+                value = Math.min(this.max, value);
+                value = Math.max(this.min, value);
+
+                value = ((value - this.min)/(this.max - this.min));
+
+                return value * 255;
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'VelPoint', function (widgets, className, data) {
+    "use strict";
+
+    var base = widgets.NormalizedPoint,
+        self = base.extend(className);
+
+    /**
+     * @name app.VelPoint
+     * @function
+     * @returns {app.VelPoint}
+     */
+
+    /**
+     * @class
+     * @extends widgets.NormalizedPoint
+     */
+    app.widgets.VelPoint = self
+        .addMethods(/** @lends app.VelPoint# */{
+            getColor: function () {
+                if (typeof this.value !== 'number') {
+                    return base.getColor.call(this);
+                }
+
+                return data.Spectrum.RdYlBu(this.normalize(this.value));
+            },
+
+            getField: function () {
+                return 'vel';
+            }
+        });
+}, app.data);
+
+$oop.postpone(app.widgets, 'VelDisPoint', function (widgets, className, data) {
+    "use strict";
+
+    var base = widgets.NormalizedPoint,
+        self = base.extend(className);
+
+    /**
+     * @name app.VelDisPoint
+     * @function
+     * @returns {app.VelDisPoint}
+     */
+
+    /**
+     * @class
+     * @extends widgets.NormalizedPoint
+     */
+    app.widgets.VelDisPoint = self
+        .addMethods(/** @lends app.VelDisPoint# */{
+            getColor: function () {
+                if (typeof this.value !== 'number') {
+                    return base.getColor.call(this);
+                }
+
+                return data.Spectrum.RdBl(this.normalize(this.value));
+            },
+
+            getField: function () {
+                return 'vel_dis';
+            }
+        });
+}, app.data);
+
+$oop.postpone(app.widgets, 'nIIHαPoint', function (widgets, className, data) {
+    "use strict";
+
+    var base = widgets.NormalizedPoint,
+        self = base.extend(className);
+
+    /**
+     * @name app.nIIHαPoint
+     * @function
+     * @returns {app.nIIHαPoint}
+     */
+
+    /**
+     * @class
+     * @extends widgets.NormalizedPoint
+     */
+    app.widgets.nIIHαPoint = self
+        .addMethods(/** @lends app.VelDisPoint# */{
+            getColor: function () {
+                if (typeof this.value !== 'number') {
+                    return base.getColor.call(this);
+                }
+
+                return data.Spectrum.RdYlBu(this.normalize(this.value));
+            },
+
+            getField: function () {
+                return 'nii_ha';
+            }
+        });
+}, app.data);
+
+$oop.postpone(app.widgets, 'oIIIHβPoint', function (widgets, className, data) {
+    "use strict";
+
+    var base = widgets.NormalizedPoint,
+        self = base.extend(className);
+
+    /**
+     * @name app.oIIIHβPoint
+     * @function
+     * @returns {app.oIIIHβPoint}
+     */
+
+    /**
+     * @class
+     * @extends widgets.NormalizedPoint
+     */
+    app.widgets.oIIIHβPoint = self
+        .addMethods(/** @lends app.VelDisPoint# */{
+            getColor: function () {
+                if (typeof this.value !== 'number') {
+                    return base.getColor.call(this);
+                }
+
+                return data.Spectrum.RdYlBu(this.normalize(this.value));
+            },
+
+            getField: function () {
+                return 'oiii_hb';
+            }
+        });
+}, app.data);
+
+$oop.postpone(app.widgets, 'SFRPoint', function (widgets, className, data) {
+    "use strict";
+
+    var base = widgets.NormalizedPoint,
+        self = base.extend(className);
+
+    /**
+     * @name app.SFRPoint
+     * @function
+     * @returns {app.SFRPoint}
+     */
+
+    /**
+     * @class
+     * @extends widgets.NormalizedPoint
+     */
+    app.widgets.SFRPoint = self
+        .addMethods(/** @lends app.VelDisPoint# */{
+            getColor: function () {
+                if (typeof this.value !== 'number') {
+                    return base.getColor.call(this);
+                }
+
+                return data.Spectrum.RdYlBu(this.normalize(this.value));
+            },
+
+            getField: function () {
+                return 'sfr';
+            }
+        });
+}, app.data);
+
+$oop.postpone(app.widgets, 'BPTClassPoint', function (widgets, className, data) {
+    "use strict";
+
+    var base = widgets.NormalizedPoint,
+        self = base.extend(className);
+
+    /**
+     * @name app.BPTClassPoint
+     * @function
+     * @returns {app.BPTClassPoint}
+     */
+
+    /**
+     * @class
+     * @extends widgets.NormalizedPoint
+     */
+    app.widgets.BPTClassPoint = self
+        .addMethods(/** @lends app.VelDisPoint# */{
+            getColor: function () {
+                if (typeof this.value !== 'number') {
+                    return base.getColor.call(this);
+                }
+
+                return data.Spectrum.RdYlBu(this.normalize(this.value));
+            },
+
+            getField: function () {
+                return 'bpt_class';
+            }
+        });
+}, app.data);
+
+$oop.postpone(app.widgets, 'RGBPoint', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.Point,
+        self = base.extend(className);
+
+    /**
+     * @name app.RGBPoint
+     * @function
+     * @returns {app.RGBPoint}
+     */
+
+    /**
+     * @class
+     * @extends widgets.Point
+     */
+    app.widgets.RGBPoint = self
+        .addMethods(/** @lends app.VelDisPoint# */{
+            getColor: function () {
+                return this.value || base.getColor.call(this);
+            },
+
+            getField: function () {
+                return 'rgb';
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'Image', function (widgets, className) {
+    "use strict";
+
+    var base = $oop.Base,
+        self = base.extend(className);
+
+    /**
+     * @name app.Image
+     * @function
+     * @returns {app.Image}
+     */
+
+    /**
+     * @class
+     * @extends $oop.Base
+     */
+    app.widgets.Image = self
+        .addMethods(/** @lends app.Image# */{
+            init: function (data, map) {
+                var html = '',
+                    x, y, color,
+                    $target = this.getContainer();
+
+                for (x = 0; x < data.width; ++x) {
+                    html += '<span>';
+
+                    for (y = 0; y < data.height; ++y) {
+                        color =  this.createPoint(x, y, map).getColor();
+
+                        html += '<i data-x="' + x + '" data-y="' + y + '" style="background-color: rgb(' + color.r + ',' + color.g + ',' + color.b + ')"></i>';
+                    }
+
+                    html += '</span>'
+                }
+
+                $target.html(html);
+
+                $('i', $target).on('mouseover', function (e) {
+                    var x = e.currentTarget.dataset.x,
+                        y = e.currentTarget.dataset.y;
+
+
+                    if (map.map[x] && map.map[x][y]) {
+                        createPointData(map.map[x][y]);
+                        createBGraph(map.map[x][y].Aspec_B, data.Bwave, map.map[x][y].AspecMax);
+                        createRGraph(map.map[x][y].Aspec_R, data.Rwave, map.map[x][y].AspecMax);
+                    }
+                });
+            },
+
+            getContainer: function () {
+                // override
+            },
+
+            createPoint: function (x, y, map) {
+                // override
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'RGBImage', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.Image,
+        self = base.extend(className);
+
+    /**
+     * @name app.RGBImage
+     * @function
+     * @returns {app.RGBImage}
+     */
+
+    /**
+     * @class
+     * @extends widgets.Image
+     */
+    app.widgets.RGBImage = self
+        .addMethods(/** @lends app.Image# */{
+            createPoint: function (x, y, map) {
+                return widgets.RGBPoint.create(x, y, map);
+            },
+
+            getContainer: function () {
+                return $('.rgb');
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'SFRImage', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.Image,
+        self = base.extend(className);
+
+    /**
+     * @name app.SFRImage
+     * @function
+     * @returns {app.SFRImage}
+     */
+
+    /**
+     * @class
+     * @extends widgets.Image
+     */
+    app.widgets.SFRImage = self
+        .addMethods(/** @lends app.Image# */{
+            createPoint: function (x, y, map) {
+                return widgets.SFRPoint.create(x, y, map);
+            },
+
+            getContainer: function () {
+                return $('.sfr');
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'VelImage', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.Image,
+        self = base.extend(className);
+
+    /**
+     * @name app.VelImage
+     * @function
+     * @returns {app.VelImage}
+     */
+
+    /**
+     * @class
+     * @extends widgets.Image
+     */
+    app.widgets.VelImage = self
+        .addMethods(/** @lends app.Image# */{
+            createPoint: function (x, y, map) {
+                return widgets.VelPoint.create(x, y, map);
+            },
+
+            getContainer: function () {
+                return $('.vel');
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'VelDisImage', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.Image,
+        self = base.extend(className);
+
+    /**
+     * @name app.VelDisImage
+     * @function
+     * @returns {app.VelDisImage}
+     */
+
+    /**
+     * @class
+     * @extends widgets.Image
+     */
+    app.widgets.VelDisImage = self
+        .addMethods(/** @lends app.Image# */{
+            createPoint: function (x, y, map) {
+                return widgets.VelDisPoint.create(x, y, map);
+            },
+
+            getContainer: function () {
+                return $('.vel_dis');
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'BPTClassImage', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.Image,
+        self = base.extend(className);
+
+    /**
+     * @name app.BPTClassImage
+     * @function
+     * @returns {app.BPTClassImage}
+     */
+
+    /**
+     * @class
+     * @extends widgets.Image
+     */
+    app.widgets.BPTClassImage = self
+        .addMethods(/** @lends app.Image# */{
+            createPoint: function (x, y, map) {
+                return widgets.BPTClassPoint.create(x, y, map);
+            },
+
+            getContainer: function () {
+                return $('.BPT');
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'nIIHαImage', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.Image,
+        self = base.extend(className);
+
+    /**
+     * @name app.nIIHαImage
+     * @function
+     * @returns {app.nIIHαImage}
+     */
+
+    /**
+     * @class
+     * @extends widgets.Image
+     */
+    app.widgets.nIIHαImage = self
+        .addMethods(/** @lends app.Image# */{
+            createPoint: function (x, y, map) {
+                return widgets.nIIHαPoint.create(x, y, map);
+            },
+
+            getContainer: function () {
+                return $('.nii_ha');
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'oIIIHβImage', function (widgets, className) {
+    "use strict";
+
+    var base = widgets.Image,
+        self = base.extend(className);
+
+    /**
+     * @name app.oIIIHβImage
+     * @function
+     * @returns {app.oIIIHβImage}
+     */
+
+    /**
+     * @class
+     * @extends widgets.Image
+     */
+    app.widgets.oIIIHβImage = self
+        .addMethods(/** @lends app.Image# */{
+            createPoint: function (x, y, map) {
+                return widgets.oIIIHβPoint.create(x, y, map);
+            },
+
+            getContainer: function () {
+                return $('.oiii_hb');
+            }
+        });
+});
+
+(function () {
+    "use strict";
+
+    $assertion.addTypes(/** @lends $assertion */{
+        /** @param {string} expr */
+        isUnsigned8Bit: function (expr) {
+            return (typeof expr === 'number' || expr instanceof Number) &&
+                   expr >= 0 &&
+                   expr <= 255;
+        }
+    });
+})();
+
+
 var createMaps = function (data) {
     var dd = createDenormalisedData(data);
-
-    // x = nii_ha
-    // y = oiii
 
     $('h2').html('Galaxy: ' + data.id);
 
@@ -153,26 +629,13 @@ var createMaps = function (data) {
     createBGraph(data.Tspec_B, data.Bwave, TspecMax);
     createRGraph(data.Tspec_R, data.Rwave, TspecMax);
 
-    createImage($('.rgb'), data.width, data.height, color.rgb, dd);
-    createImage($('.sfr'), data.width, data.height, color.sfr, dd);
-    createImage($('.vel'), data.width, data.height, color.vel, dd);
-    createImage($('.vel_dis'), data.width, data.height, color.vel_dis, dd);
-    createImage($('.BPT'), data.width, data.height, color.BPT, dd);
-    createImage($('.nii_ha'), data.width, data.height, color.nii_ha, dd);
-    createImage($('.oiii_hb'), data.width, data.height, color.oiii_hb, dd);
-
-
-
-    $('.img i').on('mouseover', function (e) {
-        var x = e.currentTarget.dataset.x,
-            y = e.currentTarget.dataset.y;
-
-        if (dd.map[x] && dd.map[x][y]) {
-            createPointData(dd.map[x][y]);
-            createBGraph(dd.map[x][y].Aspec_B, data.Bwave, dd.map[x][y].AspecMax);
-            createRGraph(dd.map[x][y].Aspec_R, data.Rwave, dd.map[x][y].AspecMax);
-        }
-    });
+    app.widgets.RGBImage.create(data, dd);
+    app.widgets.SFRImage.create(data, dd);
+    app.widgets.VelImage.create(data, dd);
+    app.widgets.VelDisImage.create(data, dd);
+    app.widgets.BPTClassImage.create(data, dd);
+    app.widgets.nIIHαImage.create(data, dd);
+    app.widgets.oIIIHβImage.create(data, dd);
 
     $('.sov-loader').hide();
     $('.sov').show();
@@ -202,7 +665,12 @@ var createDenormalisedData = function (data) {
         vel = [],
         vel_dis = [],
         nii_ha = [],
-        oiii_hb = [];
+        oiii_hb = [],
+        bpt_class = [];
+
+
+    // x = nii_ha
+    // y = oiii
 
     for (var i = 0; i < data.spaxel_data.length; ++i) {
         point = data.spaxel_data[i];
@@ -231,6 +699,11 @@ var createDenormalisedData = function (data) {
         if (point.oiii_hb) {
             oiii_hb.push(point.oiii_hb);
         }
+
+        if (point.nii_ha && point.oiii_hb) {
+            point.bpt_class = point.oiii_hb/point.nii_ha;
+            bpt_class.push(point.bpt_class);
+        }
     }
 
     vel.sort(function(a,b){return a - b});
@@ -238,6 +711,7 @@ var createDenormalisedData = function (data) {
     vel_dis.sort(function(a,b){return a - b});
     nii_ha.sort(function(a,b){return a - b});
     oiii_hb.sort(function(a,b){return a - b});
+    bpt_class.sort(function(a,b){return a - b});
 
     var rd =  {
         sfr: {
@@ -260,29 +734,17 @@ var createDenormalisedData = function (data) {
             max: percentile(oiii_hb, 0.99),
             min: percentile(oiii_hb, 0.01)
         },
+        bpt_class: {
+            max: percentile(bpt_class, 0.99),
+            min: percentile(bpt_class, 0.01)
+        },
         map: map // x,y index 2d array
     };
 
     return rd;
 };
 
-var createImage = function ($target, width, height, callback, map) {
-    var html = '',
-        x, y, color;
 
-    for (x = 0; x < width; ++x) {
-        html += '<span>';
-
-        for (y = 0; y < height; ++y) {
-            color = callback(x, y, map);
-            html += '<i data-x="' + x + '" data-y="' + y + '" style="background-color: rgb(' + color.r + ',' + color.g + ',' + color.b + ')"></i>';
-        }
-
-        html += '</span>'
-    }
-
-    $target.html(html);
-};
 
 var createPointData = function (data) {
     $('.point').html([

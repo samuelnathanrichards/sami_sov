@@ -1,6 +1,6 @@
 @font-face {
-    font-family: 'Fontin Sans';
     /* A font by Jos Buivenga (exljbris) -> www.exljbris.com */
+    font-family: 'Fontin Sans';
     src: url('../fonts/fontin_sans_r_45b-webfont.eot');
     src: url('../fonts/fontin_sans_r_45b-webfont.eot?#iefix') format('embedded-opentype'),
     url('../fonts/fontin_sans_r_45b-webfont.woff') format('woff'),
@@ -11,8 +11,8 @@
 }
 
 @font-face {
-    font-family: 'Fontin Sans';
     /* A font by Jos Buivenga (exljbris) -> www.exljbris.com */
+    font-family: 'Fontin Sans';
     src: url('../fonts/fontin_sans_b_45b-webfont.eot');
     src: url('../fonts/fontin_sans_b_45b-webfont.eot?#iefix') format('embedded-opentype'),
     url('../fonts/fontin_sans_b_45b-webfont.woff') format('woff'),
