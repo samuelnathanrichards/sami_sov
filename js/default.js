@@ -295,8 +295,14 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
                     data.indexed_spaxel_data[point.x] = data.indexed_spaxel_data[point.x] || [];
                     data.indexed_spaxel_data[point.x][point.y] = point;
 
-                    point.SspecMax = Math.max.apply(Math, point.Sspec_B.concat(point.Sspec_R));
-                    point.AspecMax = Math.max.apply(Math, point.Aspec_B.concat(point.Aspec_R));
+
+                    if (point.SspecMax) {
+                        point.SspecMax = Math.max.apply(Math, point.Sspec_B.concat(point.Sspec_R));
+                    }
+
+                    if (point.AspecMax) {
+                        point.AspecMax = Math.max.apply(Math, point.Aspec_B.concat(point.Aspec_R));
+                    }
 
                     if (point.sfr) {
                         sfr.push(point.sfr);
@@ -455,6 +461,8 @@ $oop.postpone(app.widgets, 'GalaxyListItem', function (widgets, className) {
             init: function (data) {
                 base.init.call(this);
 
+                this.data = data;
+
                 this.setTagName('li');
 
                 [
@@ -493,7 +501,7 @@ $oop.postpone(app.widgets, 'GalaxyListItem', function (widgets, className) {
             onClick: function () {
                 this.spawnEvent($commonWidgets.EVENT_BUTTON_CLICK)
                     .setPayloadItems({
-                        galaxyId: 91924
+                        galaxyId: this.data.id
                     })
                     .triggerSync();
             }
@@ -880,7 +888,15 @@ $oop.postpone(app.widgets, 'RGBPoint', function (widgets, className) {
     app.widgets.RGBPoint = self
         .addMethods(/** @lends app.VelDisPoint# */{
             getColor: function () {
-                return this.value || base.getColor.call(this);
+                if (!this.value) {
+                    return base.getColor.call(this);
+                }
+
+                return {
+                    r: this.value[0],
+                    g: this.value[1],
+                    b: this.value[2]
+                }
             },
 
             getField: function () {
@@ -1356,6 +1372,10 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                     wave = this.wave,
                     xMax = this.xMax;
 
+                if (!spec) {
+                    return;
+                }
+
                 var $container = $(this.getElement());
                 var title = this.getTitle();
 
@@ -1366,6 +1386,7 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
 
                 var x = wave.min,
                     max = 0;
+
                 for (var i = 0; i < spec.length; ++i) {
                     max = Math.max(max, spec[i]);
 
