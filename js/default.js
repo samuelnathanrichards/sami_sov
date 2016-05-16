@@ -403,6 +403,14 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
                         .setContainerCssClass('spec-container')
                         .addToParent(this);
                 }
+
+                this.getChild('A-RGB').setCursorPosition(x, y);
+                this.getChild('B-SFR').setCursorPosition(x, y);
+                this.getChild('C-Vel').setCursorPosition(x, y);
+                this.getChild('D-VelDis').setCursorPosition(x, y);
+                this.getChild('E-BPTClass').setCursorPosition(x, y);
+                this.getChild('F-nIIHα').setCursorPosition(x, y);
+                this.getChild('G-oIIIHβ').setCursorPosition(x, y);
             }
         });
 });
@@ -632,6 +640,63 @@ $oop.postpone(app.widgets, 'Point', function (widgets, className) {
 
             getField: function () {
                 // override
+            },
+
+            getValue: function () {
+                // override
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'Cursor', function (widgets, className) {
+    "use strict";
+
+    var base = $widget.Widget,
+        self = base.extend(className);
+
+    /**
+     * @name app.Cursor
+     * @function
+     * @returns {app.Cursor}
+     */
+
+    /**
+     * @class
+     * @extends $widget.Widget
+     */
+    app.widgets.Cursor = self
+        .addMethods(/** @lends app.Cursor# */{
+            setPosition: function (x, y) {
+                $(this.getElement()).css({
+                    left: (y * 2) + '%',
+                    top: (x * 2) + '%'
+                })
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'SpectrumIndicator', function (widgets, className) {
+    "use strict";
+
+    var base = $widget.Widget,
+        self = base.extend(className);
+
+    /**
+     * @name app.SpectrumIndicator
+     * @function
+     * @returns {app.SpectrumIndicator}
+     */
+
+    /**
+     * @class
+     * @extends $widget.Widget
+     */
+    app.widgets.SpectrumIndicator = self
+        .addMethods(/** @lends app.SpectrumIndicator# */{
+            setPosition: function (y) {
+                $(this.getElement()).css({
+                    left: ((y/255*100) - 1.5) + '%'
+                })
             }
         });
 });
@@ -667,6 +732,10 @@ $oop.postpone(app.widgets, 'NormalizedPoint', function (widgets, className) {
                 value = ((value - this.min) / (this.max - this.min));
 
                 return value * 255;
+            },
+
+            getValue: function () {
+                return this.normalize(this.value);
             }
         });
 });
@@ -922,14 +991,24 @@ $oop.postpone(app.widgets, 'Card', function (widgets, className) {
      * @extends $oop.Base
      */
     app.widgets.Card = self
+        .addPublic(/** @lends app.widgets.Image */{
+            /**
+             * @type {$widget.MarkupTemplate}
+             */
+            contentTemplate: [
+                //@formatter:off
+                '<div class="header"></div>'
+                //@formatter:on
+            ].join('').toMarkupTemplate()
+        })
         .addMethods(/** @lends app.Image# */{
             init: function () {
                 base.init.call(this);
-            },
-
-            afterRender: function () {
-                base.afterRender.call(this);
-                var $target = $(this.getElement()).append('<h3>' + this.getTitle() + '</h3>');
+                 $commonWidgets.Label.create()
+                     .setTagName('h3')
+                     .setLabelText(this.getTitle())
+                     .setContainerCssClass('header')
+                     .addToParent(this);
             },
 
             getTitle: function () {
@@ -956,26 +1035,49 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
      * @extends $event.Evented
      */
     app.widgets.Image = self
-        .addConstants(/** @lends app.widgets.Animator */{
+        .addConstants(/** @lends app.widgets.Image */{
             /** @constant */
             EVENT_PIXEL_HOVER: 'app.widgets.Image.EVENT_PIXEL_HOVER'
         })
-        .addMethods(/** @lends app.Image# */{
+        .addPublic(/** @lends app.widgets.Image */{
+            /**
+             * @type {$widget.MarkupTemplate}
+             */
+            contentTemplate: [
+                //@formatter:off
+                '<div class="header"></div>',
+                '<div class="img"></div>',
+                '<div class="spectrum"></div>'
+                //@formatter:on
+            ].join('').toMarkupTemplate()
+        })
+        .addMethods(/** @lends app.widgets.Image# */{
             init: function (data) {
                 base.init.call(this);
+
+                widgets.Cursor.create()
+                    .setChildName('cursor')
+                    .setContainerCssClass('img')
+                    .addToParent(this);
+
+                widgets.SpectrumIndicator.create()
+                    .setChildName('spectrum-indicator')
+                    .setContainerCssClass('spectrum')
+                    .addToParent(this);
+
                 this.data = data;
             },
 
             afterRender: function () {
                 base.afterRender.call(this);
-                var data = this.data;
+                var data = this.data,
+                    that = this;
 
                 var html = '',
                     x, y, z, color,
                     $target = $(this.getElement()),
                     that = this;
 
-                html += '<div class="img">';
                 for (x = 0; x < data.width; ++x) {
                     html += '<span>';
 
@@ -986,28 +1088,39 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
 
                     html += '</span>'
                 }
-                html += '</div>';
 
-                html += '<div class="spectrum">';
+                $('.img', this.getElement()).append(html);
+
+                html = '';
                 for (z = 0; z < 255; ++z) {
                     color = this.getColor(z);
                     html += '<i style="background-color: rgb(' + color.r + ',' + color.g + ',' + color.b + ')"></i>';
                 }
-                html += '</div>';
 
-                $target.append(html);
+                $('.spectrum', this.getElement()).append(html);
 
-                $('i', $target).on('mouseover', function (e) {
-                    var x = e.currentTarget.dataset.x,
-                        y = e.currentTarget.dataset.y;
+                $('i', $target).on('mouseover click', function (e) {
+                    if (e.buttons || e.type === 'click') {
+                        var x = e.currentTarget.dataset.x,
+                            y = e.currentTarget.dataset.y;
 
-                    that.spawnEvent(that.EVENT_PIXEL_HOVER)
-                        .setPayloadItems({
-                            x: x,
-                            y: y
-                        })
-                        .triggerSync();
+                        that.spawnEvent(that.EVENT_PIXEL_HOVER)
+                            .setPayloadItems({
+                                x: x,
+                                y: y
+                            })
+                            .triggerSync();
+                    }
                 });
+            },
+
+            setCursorPosition: function (x, y) {
+                this.getChild('cursor').setPosition(x, y);
+
+                var value = this.createPoint(x, y, this.data).getValue();
+                if (value) {
+                    this.getChild('spectrum-indicator').setPosition(value);
+                }
             },
 
             createPoint: function (x, y, map) {
@@ -1175,7 +1288,14 @@ $oop.postpone(app.widgets, 'BPTClassImage', function (widgets, className, data) 
             },
 
             getColor: function (index) {
-                return data.Spectrum.RdBl(index);
+                index = Math.round((index - 25)/255 * 5);
+                return [
+                    {r: 0, g: 0, b: 0},
+                    {r: 255, g: 0, b: 0},   // red
+                    {r: 255, g: 0, b: 255}, // magenta
+                    {r: 0, g: 255, b: 0},   // green
+                    {r: 0, g: 0, b: 255}    // blue
+                ][index];
             }
         });
 }, app.data);
