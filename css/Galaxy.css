@@ -10,6 +10,10 @@
     clear: both;
 }
 
+.Galaxy .img-container {
+    cursor: crosshair;
+}
+
 .Galaxy .img-container .img span {
     display: block;
     height: 2%;
