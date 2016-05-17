@@ -16,13 +16,12 @@ SAMI Galaxy Survey - Single Object View
 * include the gama_sersic image array at the bottom of the page, hyperlinked to the gama_url.
 
 * use matplotlib_colormaps.json for the colormaps. 
-
 * SFR: YlOrRd
 * Vel: RdYlBu, possibly RdYlBu_r, such that negative is blue
 * Vel_dis: YlOrRd
 * BPT_class: - 0 [0,0,0] - 1 [255,255,204] - 2 [161,218,180] - 3 [65,182,196] - 4 [34,94,168]
 * nii_ha: YlOrRd
-* oiii_ha: UlGnBu
+* oiii_ha: YlGnBu
 
 * colorbars to have slider marker with physical value printed
 
