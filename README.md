@@ -22,7 +22,6 @@ SAMI Galaxy Survey - Single Object View
 * BPT_class: - 0 [0,0,0] - 1 [255,255,204] - 2 [161,218,180] - 3 [65,182,196] - 4 [34,94,168]
 * nii_ha: YlOrRd
 * oiii_ha: YlGnBu
-
 * colorbars to have slider marker with physical value printed
 
 * BPT scatter to have xlims [-1.5,0.5] and ylims [-1.2,1.2]
