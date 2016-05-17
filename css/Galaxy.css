@@ -32,14 +32,14 @@
 
 .Galaxy .img-container > div {
     height: 0;
-    padding-bottom: calc(25% + 84px);
+    padding-bottom: calc(25% + 104px);
     width: calc(25% - 16px);
     margin: 8px;
 }
 
 .Galaxy .img-container > div .img {
     top: 24px;
-    bottom: 60px;
+    bottom: 80px;
     position: absolute;
     left: 0;
     right: 0;
@@ -55,7 +55,7 @@
     height: 30px;
     left: 0;
     right: 0;
-    bottom: 10px;
+    bottom: 30px;
 }
 
 .Galaxy .img-container .spectrum i {
@@ -105,14 +105,14 @@
 
 @media (max-width: 1000px) {
     .Galaxy .img-container > div {
-        padding-bottom: calc(50% + 84px);
+        padding-bottom: calc(50% + 104px);
         width: calc(50% - 16px);
     }
 }
 
 @media (max-width: 500px) {
     .Galaxy .img-container > div {
-        padding-bottom: calc(100% + 84px);
+        padding-bottom: calc(100% + 104px);
         width: calc(100% - 16px);
     }
 }

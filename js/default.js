@@ -394,9 +394,9 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
                     this.getChild('detail').updateData(indexed_spaxel_data[x][y]);
 
                     [
-                        widgets.BSpecGraph.create(indexed_spaxel_data[x][y].Aspec_B, this.data.Bwave, indexed_spaxel_data[x][y].AspecMax)
+                        widgets.BSpecGraph.create(indexed_spaxel_data[x][y].Sspec_B, this.data.Bwave, indexed_spaxel_data[x][y].AspecMax)
                             .setChildName('A-BSpecGraph'),
-                        widgets.RSpecGraph.create(indexed_spaxel_data[x][y].Aspec_R, this.data.Rwave, indexed_spaxel_data[x][y].AspecMax)
+                        widgets.RSpecGraph.create(indexed_spaxel_data[x][y].Sspec_R, this.data.Rwave, indexed_spaxel_data[x][y].AspecMax)
                             .setChildName('R-BSpecGraph')
                     ]
                         .toWidgetCollection()
@@ -726,10 +726,12 @@ $oop.postpone(app.widgets, 'NormalizedPoint', function (widgets, className) {
             },
 
             normalize: function (value) {
+                var max = Math.max(this.max, Math.abs(this.min));
+
                 value = Math.min(this.max, value);
                 value = Math.max(this.min, value);
 
-                value = ((value - this.min) / (this.max - this.min));
+                value = ((value + max) / (max * 2));
 
                 return value * 255;
             },
@@ -934,6 +936,10 @@ $oop.postpone(app.widgets, 'BPTClassPoint', function (widgets, className, data) 
 
             getField: function () {
                 return 'BPT';
+            },
+
+            getValue: function () {
+                return this.value;
             }
         });
 }, app.data);
@@ -970,6 +976,10 @@ $oop.postpone(app.widgets, 'RGBPoint', function (widgets, className) {
 
             getField: function () {
                 return 'rgb';
+            },
+
+            getValue: function () {
+                return this.value;
             }
         });
 });
@@ -1047,7 +1057,8 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
                 //@formatter:off
                 '<div class="header"></div>',
                 '<div class="img"></div>',
-                '<div class="spectrum"></div>'
+                '<div class="spectrum"></div>',
+                '<div class="spectrum-value"></div>'
                 //@formatter:on
             ].join('').toMarkupTemplate()
         })
@@ -1063,6 +1074,11 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
                 widgets.SpectrumIndicator.create()
                     .setChildName('spectrum-indicator')
                     .setContainerCssClass('spectrum')
+                    .addToParent(this);
+
+                $commonWidgets.Label.create()
+                    .setChildName('value')
+                    .setContainerCssClass('spectrum-value')
                     .addToParent(this);
 
                 this.data = data;
@@ -1119,6 +1135,7 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
 
                 var value = this.createPoint(x, y, this.data).getValue();
                 if (value) {
+                    this.getChild('value').setLabelText(value);
                     this.getChild('spectrum-indicator').setPosition(value);
                 }
             },
@@ -1488,6 +1505,8 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
             afterRender: function () {
                 base.afterRender.call(this);
 
+                var that = this;
+
                 var spec = this.spec,
                     wave = this.wave,
                     xMax = this.xMax;
@@ -1578,9 +1597,46 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                     }).highcharts(); // return chart
                 }
 
+                function zoom(masterChart, detailChart) {
+
+                    var detailData = [],
+                        xAxis = masterChart.xAxis[0],
+                        min = that.getMin(),
+                        max = that.getMax();
+
+                    // reverse engineer the last part of the data
+                    $.each(masterChart.series[0].data, function () {
+                        if (this.x > min && this.x < max) {
+                            detailData.push([this.x, this.y]);
+                        }
+                    });
+
+                    // move the plot bands to reflect the new detail span
+                    xAxis.removePlotBand('mask-before');
+                    xAxis.addPlotBand({
+                        id: 'mask-before',
+                        from: data[0][0],
+                        to: min,
+                        color: 'rgba(0, 0, 0, 0.2)'
+                    });
+
+                    xAxis.removePlotBand('mask-after');
+                    xAxis.addPlotBand({
+                        id: 'mask-after',
+                        from: max,
+                        to: data[data.length - 1][0],
+                        color: 'rgba(0, 0, 0, 0.2)'
+                    });
+
+                    detailChart.xAxis[0].update({
+                        min: null,
+                        max: null
+                    });
+
+                    detailChart.series[0].setData(detailData);
+                }
                 // create the master chart
                 function createMaster($masterContiner, $detailContainer) {
-
                     $masterContiner.highcharts({
                             chart: {
                                 zoomType: 'x',
@@ -1591,40 +1647,13 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                                     selection: function (event) {
                                         var extremesObject = event.xAxis[0],
                                             min = extremesObject.min,
-                                            max = extremesObject.max,
-                                            detailData = [],
-                                            xAxis = this.xAxis[0];
+                                            max = extremesObject.max;
 
-                                        // reverse engineer the last part of the data
-                                        $.each(this.series[0].data, function () {
-                                            if (this.x > min && this.x < max) {
-                                                detailData.push([this.x, this.y]);
-                                            }
-                                        });
+                                        that.setMin(min);
+                                        that.setMax(max);
 
-                                        // move the plot bands to reflect the new detail span
-                                        xAxis.removePlotBand('mask-before');
-                                        xAxis.addPlotBand({
-                                            id: 'mask-before',
-                                            from: data[0][0],
-                                            to: min,
-                                            color: 'rgba(0, 0, 0, 0.2)'
-                                        });
 
-                                        xAxis.removePlotBand('mask-after');
-                                        xAxis.addPlotBand({
-                                            id: 'mask-after',
-                                            from: max,
-                                            to: data[data.length - 1][0],
-                                            color: 'rgba(0, 0, 0, 0.2)'
-                                        });
-
-                                        detailChart.xAxis[0].update({
-                                            min: null,
-                                            max: null
-                                        });
-
-                                        detailChart.series[0].setData(detailData);
+                                        zoom($masterContiner.highcharts(), detailChart);
 
                                         return false;
                                     }
@@ -1678,13 +1707,13 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                         .highcharts(); // return chart instance
                 }
 
-                var $detailContainer = $('<div>')
+                var $detailContainer = $('<div class="detail">')
                     .css({
                         height: 225
                     })
                     .appendTo($container);
 
-                var $masterContainer = $('<div>')
+                var $masterContainer = $('<div class="master">')
                     .css({
                         position: 'absolute',
                         bootom: 0,
@@ -1695,6 +1724,10 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
 
                 // create master and in its callback, create the detail chart
                 createMaster($masterContainer, $detailContainer);
+
+                if (that.getMin() && that.getMax()) {
+                    zoom($masterContainer.highcharts(), $detailContainer.highcharts());
+                }
             },
 
             removeFromParent: function () {
@@ -1731,6 +1764,22 @@ $oop.postpone(app.widgets, 'BSpecGraph', function (widgets, className) {
 
             getTitle: function () {
                 return 'B Spec';
+            },
+
+            setMax: function (max) {
+                self.max = max;
+            },
+
+            setMin: function (min) {
+                self.min = min;
+            },
+
+            getMax: function () {
+                return self.max;
+            },
+
+            getMin: function () {
+                return self.min;
             }
         });
 });
@@ -1759,6 +1808,22 @@ $oop.postpone(app.widgets, 'RSpecGraph', function (widgets, className) {
 
             getTitle: function () {
                 return 'R Spec';
+            },
+
+            setMax: function (max) {
+                self.max = max;
+            },
+
+            setMin: function (min) {
+                self.min = min;
+            },
+
+            getMax: function () {
+                return self.max;
+            },
+
+            getMin: function () {
+                return self.min;
             }
         });
 });

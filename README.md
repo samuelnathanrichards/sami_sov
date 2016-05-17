@@ -3,13 +3,13 @@ SAMI Galaxy Survey - Single Object View
 
 ### To do:
 
-* fix code to read current data format.
+* ~~fix code to read current data format.~~
 
 * scale y axis on spectrum to min = 0, max = maximum scalar between B and R of that spectrum.
 
 * perhaps have a toggle that fixes max to the maximum scalar across all spaxels?
 
-* keep zoom on spectrum when going between spaxels.
+* ~~keep zoom on spectrum when going between spaxels.~~
 
 * include reset on spectrum.
 
