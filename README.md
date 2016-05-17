@@ -5,13 +5,15 @@ SAMI Galaxy Survey - Single Object View
 
 * ~~fix code to read current data format.~~
 
-* scale y axis on spectrum to min = 0, max = maximum scalar between B and R of that spectrum.
-
-* perhaps have a toggle that fixes max to the maximum scalar across all spaxels?
+* ~~scale y axis on spectrum to min = 0, max = maximum scalar between B and R of that spectrum.~~
 
 * ~~keep zoom on spectrum when going between spaxels.~~
 
+* Remove blogs on spec graph on high zoom
+
 * include reset on spectrum.
+
+* perhaps have a toggle that fixes max to the maximum scalar across all spaxels?
 
 * include the gama_sersic image array at the bottom of the page, hyperlinked to the gama_url.
 

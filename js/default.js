@@ -223,12 +223,22 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
                     .setContainerCssClass('header')
                     .addToParent(this);
 
-                var TspecMax = Math.max.apply(Math, this.data.Tspec_B.concat(this.data.Tspec_R));
+                var TspecMax = Math.max(this.data.Tspec_scalar_B, this.data.Tspec_scalar_R);
 
                 [
-                    widgets.BSpecGraph.create(this.data.Tspec_B, this.data.Bwave, TspecMax)
+                    widgets.BSpecGraph.create(
+                        this.data.Tspec_B,
+                        this.data.Bwave,
+                        TspecMax,
+                        this.data.Tspec_scalar_B
+                    )
                         .setChildName('A-BSpecGraph'),
-                    widgets.RSpecGraph.create(this.data.Tspec_R, this.data.Rwave, TspecMax)
+                    widgets.RSpecGraph.create(
+                        this.data.Tspec_R,
+                        this.data.Rwave,
+                        TspecMax,
+                        this.data.Tspec_scalar_R
+                    )
                         .setChildName('R-BSpecGraph')
                 ]
                     .toWidgetCollection()
@@ -236,29 +246,29 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
                     .addToParent(this);
 
                 [
-                    widgets.RGBImage.create(this.data)
-                        .setChildName('A-RGB'),
+                    // widgets.RGBImage.create(this.data)
+                    //     .setChildName('A-RGB'),
 
                     widgets.SFRImage.create(this.data)
                         .setChildName('B-SFR'),
-
-                    widgets.VelImage.create(this.data)
-                        .setChildName('C-Vel'),
-
-                    widgets.VelDisImage.create(this.data)
-                        .setChildName('D-VelDis'),
-
-                    widgets.BPTClassImage.create(this.data)
-                        .setChildName('E-BPTClass'),
-
-                    widgets.nIIHαImage.create(this.data)
-                        .setChildName('F-nIIHα'),
-
-                    widgets.oIIIHβImage.create(this.data)
-                        .setChildName('G-oIIIHβ'),
-
-                    widgets.BPTScatterGraph.create(this.data)
-                        .setChildName('H-BPTScatter')
+                    //
+                    // widgets.VelImage.create(this.data)
+                    //     .setChildName('C-Vel'),
+                    //
+                    // widgets.VelDisImage.create(this.data)
+                    //     .setChildName('D-VelDis'),
+                    //
+                    // widgets.BPTClassImage.create(this.data)
+                    //     .setChildName('E-BPTClass'),
+                    //
+                    // widgets.nIIHαImage.create(this.data)
+                    //     .setChildName('F-nIIHα'),
+                    //
+                    // widgets.oIIIHβImage.create(this.data)
+                    //     .setChildName('G-oIIIHβ'),
+                    //
+                    // widgets.BPTScatterGraph.create(this.data)
+                    //     .setChildName('H-BPTScatter')
                 ]
                     .toWidgetCollection()
                     .setContainerCssClass('img-container')
@@ -298,10 +308,6 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
 
                     if (point.SspecMax) {
                         point.SspecMax = Math.max.apply(Math, point.Sspec_B.concat(point.Sspec_R));
-                    }
-
-                    if (point.AspecMax) {
-                        point.AspecMax = Math.max.apply(Math, point.Aspec_B.concat(point.Aspec_R));
                     }
 
                     if (point.sfr) {
@@ -365,20 +371,20 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
                         min: app.data.Maths.percentile(vel, 0.05)
                     },
                     vel_dis: {
-                        max: app.data.Maths.percentile(vel_dis, 0.99),
-                        min: app.data.Maths.percentile(vel_dis, 0.01)
+                        max: app.data.Maths.percentile(vel_dis, 0.95),
+                        min: app.data.Maths.percentile(vel_dis, 0.05)
                     },
                     nii_ha: {
-                        max: app.data.Maths.percentile(nii_ha, 0.99),
-                        min: app.data.Maths.percentile(nii_ha, 0.01)
+                        max: app.data.Maths.percentile(nii_ha, 0.95),
+                        min: app.data.Maths.percentile(nii_ha, 0.05)
                     },
                     oiii_hb: {
-                        max: app.data.Maths.percentile(oiii_hb, 0.99),
-                        min: app.data.Maths.percentile(oiii_hb, 0.01)
+                        max: app.data.Maths.percentile(oiii_hb, 0.95),
+                        min: app.data.Maths.percentile(oiii_hb, 0.05)
                     },
                     bpt_class: {
-                        max: app.data.Maths.percentile(bpt_class, 0.99),
-                        min: app.data.Maths.percentile(bpt_class, 0.01)
+                        max: app.data.Maths.percentile(bpt_class, 0.95),
+                        min: app.data.Maths.percentile(bpt_class, 0.05)
                     }
                 };
 
@@ -393,10 +399,21 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
                 if (indexed_spaxel_data[x] && indexed_spaxel_data[x][y]) {
                     this.getChild('detail').updateData(indexed_spaxel_data[x][y]);
 
+                    var limit = Math.max(indexed_spaxel_data[x][y].spaxel_scalar_B, indexed_spaxel_data[x][y].spaxel_scalar_R);
                     [
-                        widgets.BSpecGraph.create(indexed_spaxel_data[x][y].Sspec_B, this.data.Bwave, indexed_spaxel_data[x][y].AspecMax)
+                        widgets.BSpecGraph.create(
+                            indexed_spaxel_data[x][y].Sspec_B,
+                            this.data.Bwave,
+                            limit,
+                            indexed_spaxel_data[x][y].spaxel_scalar_B
+                        )
                             .setChildName('A-BSpecGraph'),
-                        widgets.RSpecGraph.create(indexed_spaxel_data[x][y].Sspec_R, this.data.Rwave, indexed_spaxel_data[x][y].AspecMax)
+                        widgets.RSpecGraph.create(
+                            indexed_spaxel_data[x][y].Sspec_R,
+                            this.data.Rwave,
+                            limit,
+                            indexed_spaxel_data[x][y].spaxel_scalar_R
+                        )
                             .setChildName('R-BSpecGraph')
                     ]
                         .toWidgetCollection()
@@ -723,6 +740,8 @@ $oop.postpone(app.widgets, 'NormalizedPoint', function (widgets, className) {
                 base.init.call(this, x, y, dd);
                 this.max = dd.limits[this.getField()].max;
                 this.min = dd.limits[this.getField()].min;
+
+                console.log(this.max, this.min);
             },
 
             normalize: function (value) {
@@ -733,7 +752,9 @@ $oop.postpone(app.widgets, 'NormalizedPoint', function (widgets, className) {
 
                 value = ((value + max) / (max * 2));
 
-                return value * 255;
+                var color =  value * 255;
+
+                return color;
             },
 
             getValue: function () {
@@ -1297,7 +1318,7 @@ $oop.postpone(app.widgets, 'BPTClassImage', function (widgets, className, data) 
     app.widgets.BPTClassImage = self
         .addMethods(/** @lends app.Image# */{
             getTitle: function () {
-                return 'BTP';
+                return 'BPT';
             },
 
             createPoint: function (x, y, map) {
@@ -1471,7 +1492,7 @@ $oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
             },
 
             getTitle: function () {
-                return 'BTP Scatter';
+                return 'BPT Scatter';
             }
         });
 });
@@ -1494,12 +1515,13 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
      */
     app.widgets.SpecGraph = self
         .addMethods(/** @lends app.Image# */{
-            init: function (spec, wave, xMax) {
+            init: function (spec, wave, yMax, scalar) {
                 base.init.call(this);
 
                 this.spec = spec;
                 this.wave = wave;
-                this.xMax = xMax;
+                this.yMax = yMax;
+                this.scalar = scalar;
             },
 
             afterRender: function () {
@@ -1509,7 +1531,7 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
 
                 var spec = this.spec,
                     wave = this.wave,
-                    xMax = this.xMax;
+                    yMax = this.yMax;
 
                 if (!spec) {
                     return;
@@ -1529,7 +1551,7 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                 for (var i = 0; i < spec.length; ++i) {
                     max = Math.max(max, spec[i]);
 
-                    data.push([x, spec[i] || null]);
+                    data.push([x, (spec[i]/255*this.scalar) || null]);
 
                     x += wave.step;
                 }
@@ -1569,9 +1591,7 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                                 text: null
                             },
                             min: 0,
-                            max: xMax,
-                            tickInterval: 50,
-                            minorTickInterval: 25
+                            max: yMax
                         },
                         tooltip: {
                             formatter: function () {
@@ -1673,7 +1693,7 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                                     text: null
                                 },
                                 min: 0,
-                                max: xMax,
+                                max: yMax,
                                 showLastLabel: false,
                                 showFirstLabel: false
                             },
