@@ -24,7 +24,7 @@ SAMI Galaxy Survey - Single Object View
 * oiii_ha: YlGnBu
 * colorbars to have slider marker with physical value printed
 
-* BPT scatter to have xlims [-1.5,0.5] (nii_ha) and ylims [-1.2,1.2] (oiii_hb)
+* BPT scatter to have xlims [-1.5,0.5] nii_ha, and ylims [-1.2,1.2] oiii_hb
 
 * BPT scatter points to be greyed initially, red for selected spaxel, BPT_class colors for spaxels within psf radius.
 
