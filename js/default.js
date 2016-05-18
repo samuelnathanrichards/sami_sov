@@ -142,7 +142,7 @@ $oop.postpone(app.widgets, 'SOVPage', function (widgets, className) {
                 );
 
                 this.elevateMethods('onClick');
-                this.subscribeTo($commonWidgets.EVENT_BUTTON_CLICK, this.onClick)
+                this.subscribeTo($commonWidgets.EVENT_BUTTON_CLICK, this.onClick);
             },
 
             hideLoader: function () {
@@ -154,6 +154,9 @@ $oop.postpone(app.widgets, 'SOVPage', function (widgets, className) {
             },
 
             onClick: function (e) {
+                if (!e.payload.galaxyId) {
+                    return;
+                }
                 var that = this;
                 var galaxyId = e.payload.galaxyId;
 
@@ -239,40 +242,46 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
                         TspecMax,
                         this.data.Tspec_scalar_R
                     )
-                        .setChildName('R-BSpecGraph')
+                        .setChildName('B-RSpecGraph')
                 ]
                     .toWidgetCollection()
                     .setContainerCssClass('spec-container')
                     .addToParent(this);
 
-                [
-                    // widgets.RGBImage.create(this.data)
-                    //     .setChildName('A-RGB'),
+                this.images = [
+                    widgets.RGBImage.create(this.data)
+                        .setChildName('A-RGB'),
 
                     widgets.SFRImage.create(this.data)
                         .setChildName('B-SFR'),
-                    //
-                    // widgets.VelImage.create(this.data)
-                    //     .setChildName('C-Vel'),
-                    //
-                    // widgets.VelDisImage.create(this.data)
-                    //     .setChildName('D-VelDis'),
-                    //
-                    // widgets.BPTClassImage.create(this.data)
-                    //     .setChildName('E-BPTClass'),
-                    //
-                    // widgets.nIIHαImage.create(this.data)
-                    //     .setChildName('F-nIIHα'),
-                    //
-                    // widgets.oIIIHβImage.create(this.data)
-                    //     .setChildName('G-oIIIHβ'),
-                    //
-                    // widgets.BPTScatterGraph.create(this.data)
-                    //     .setChildName('H-BPTScatter')
+
+                    widgets.VelImage.create(this.data)
+                        .setChildName('C-Vel'),
+
+                    widgets.VelDisImage.create(this.data)
+                        .setChildName('D-VelDis'),
+
+                    widgets.BPTClassImage.create(this.data)
+                        .setChildName('E-BPTClass'),
+
+                    widgets.nIIHαImage.create(this.data)
+                        .setChildName('F-nIIHα'),
+
+                    widgets.oIIIHβImage.create(this.data)
+                        .setChildName('G-oIIIHβ')
                 ]
                     .toWidgetCollection()
                     .setContainerCssClass('img-container')
                     .addToParent(this);
+
+                widgets.BPTScatterGraph.create(this.data)
+                    .setChildName('H-BPTScatter')
+                    .setContainerCssClass('img-container')
+                    .addToParent(this);
+
+                // widgets.GamaSersicImage.create(this.data)
+                //     .setChildName('H-BPTScatter')
+                //     .addToParent(this);
 
                 widgets.Detail.create()
                     .setChildName('detail')
@@ -414,20 +423,18 @@ $oop.postpone(app.widgets, 'Galaxy', function (widgets, className) {
                             limit,
                             indexed_spaxel_data[x][y].spaxel_scalar_R
                         )
-                            .setChildName('R-BSpecGraph')
+                            .setChildName('B-RSpecGraph')
                     ]
                         .toWidgetCollection()
                         .setContainerCssClass('spec-container')
                         .addToParent(this);
                 }
 
-                this.getChild('A-RGB').setCursorPosition(x, y);
-                this.getChild('B-SFR').setCursorPosition(x, y);
-                this.getChild('C-Vel').setCursorPosition(x, y);
-                this.getChild('D-VelDis').setCursorPosition(x, y);
-                this.getChild('E-BPTClass').setCursorPosition(x, y);
-                this.getChild('F-nIIHα').setCursorPosition(x, y);
-                this.getChild('G-oIIIHβ').setCursorPosition(x, y);
+                for (var i in this.images.items) {
+                    if (this.images.items.hasOwnProperty(i)) {
+                        this.images.items[i].setCursorPosition(x, y);
+                    }
+                }
             }
         });
 });
@@ -740,8 +747,6 @@ $oop.postpone(app.widgets, 'NormalizedPoint', function (widgets, className) {
                 base.init.call(this, x, y, dd);
                 this.max = dd.limits[this.getField()].max;
                 this.min = dd.limits[this.getField()].min;
-
-                console.log(this.max, this.min);
             },
 
             normalize: function (value) {
@@ -1044,6 +1049,54 @@ $oop.postpone(app.widgets, 'Card', function (widgets, className) {
 
             getTitle: function () {
                 return '';
+            }
+        });
+});
+
+$oop.postpone(app.widgets, 'GamaSersicImage', function (widgets, className) {
+    "use strict";
+
+    var base = $widget.Widget,
+        self = base.extend(className);
+
+    /**
+     * @name app.widgets.GamaSersicImage
+     * @function
+     * @returns {app.widgets.GamaSersicImage}
+     */
+
+    /**
+     * @class
+     * @extends $widget.Widget
+     */
+    app.widgets.GamaSersicImage = self
+        .addMethods(/** @lends app.widgets.GamaSersicImage# */{
+            init: function (data) {
+                base.init.call(this);
+
+                this.data = data;
+            },
+
+            afterRender: function () {
+                base.afterRender.call(this);
+
+
+                var html = '<div>';
+
+                for (var i = 0; i < this.data.gama_sersic.length ; ++i) {
+                    html += '<span>';
+                    for (var j = 0; j < this.data.gama_sersic[i].length; ++j) {
+                        html += '<i data-x="' + i + '" data-y="' + j + '" style="background-color: rgb(' +
+                                this.data.gama_sersic[i][j][0] + ',' +
+                                this.data.gama_sersic[i][j][1] + ',' +
+                                this.data.gama_sersic[i][j][2] +
+                                ')"></i>';
+                    }
+                    html += '</span>'
+                }
+                html += '</div>';
+
+                $(this.getElement()).append(html);
             }
         });
 });
@@ -1514,9 +1567,28 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
      * @extends $widget.Widget
      */
     app.widgets.SpecGraph = self
+        .addPublic(/** @lends app.widgets.ContactPage */{
+            /**
+             * @type {$widget.MarkupTemplate}
+             */
+            contentTemplate: [
+                //@formatter:off
+                '<div class="master"></div>',
+                '<div class="detail"></div>'
+                //@formatter:on
+            ].join('').toMarkupTemplate()
+        })
         .addMethods(/** @lends app.Image# */{
             init: function (spec, wave, yMax, scalar) {
                 base.init.call(this);
+
+                $commonWidgets.TextButton.create()
+                    .setCaption('Reset')
+                    .setChildName('reset')
+                    .addToParent(this);
+
+                this.elevateMethods('onClick');
+                this.subscribeTo($commonWidgets.EVENT_BUTTON_CLICK, this.onClick);
 
                 this.spec = spec;
                 this.wave = wave;
@@ -1524,9 +1596,19 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                 this.scalar = scalar;
             },
 
+            onClick: function (e) {
+                this.setMin(null);
+                this.setMax(null);
+                this.destroyGraphs();
+                this.createGraph();
+            },
+
             afterRender: function () {
                 base.afterRender.call(this);
+                this.createGraph();
+            },
 
+            createGraph: function () {
                 var that = this;
 
                 var spec = this.spec,
@@ -1537,13 +1619,10 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                     return;
                 }
 
-                var $container = $(this.getElement());
                 var title = this.getTitle();
 
                 var detailChart,
                     data = [];
-
-                $container.html('');
 
                 var x = wave.min,
                     max = 0;
@@ -1558,7 +1637,6 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
 
                 // create the detail chart
                 function createDetail(masterChart, $detailContainer) {
-
                     // prepare the detail chart
                     var detailData = [],
                         detailStart = data[0][0];
@@ -1603,6 +1681,11 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                             enabled: false
                         },
                         plotOptions: {
+                            line: {
+                                marker: {
+                                    enabled: false
+                                }
+                            },
                             series: {
                                 animation: false
                             }
@@ -1727,20 +1810,9 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                         .highcharts(); // return chart instance
                 }
 
-                var $detailContainer = $('<div class="detail">')
-                    .css({
-                        height: 225
-                    })
-                    .appendTo($container);
 
-                var $masterContainer = $('<div class="master">')
-                    .css({
-                        position: 'absolute',
-                        bootom: 0,
-                        height: 75,
-                        width: '100%'
-                    })
-                    .appendTo($container);
+                var $detailContainer = $('.detail', this.getElement());
+                var $masterContainer = $('.master', this.getElement());
 
                 // create master and in its callback, create the detail chart
                 createMaster($masterContainer, $detailContainer);
@@ -1750,11 +1822,21 @@ $oop.postpone(app.widgets, 'SpecGraph', function (widgets, className) {
                 }
             },
 
-            removeFromParent: function () {
-                $(this.getElement()).children().each(function () {
-                    $(this).highcharts().destroy();
-                });
+            destroyGraphs: function () {
+                var detail = $('.detail', this.getElement()).highcharts(),
+                    master = $('.master', this.getElement()).highcharts();
 
+                if (detail) {
+                    detail.destroy();
+                }
+
+                if (master) {
+                    master.destroy();
+                }
+            },
+
+            removeFromParent: function () {
+                this.destroyGraphs();
                 base.removeFromParent.call(this);
             }
         });
@@ -1778,10 +1860,6 @@ $oop.postpone(app.widgets, 'BSpecGraph', function (widgets, className) {
      */
     app.widgets.BSpecGraph = self
         .addMethods(/** @lends app.Image# */{
-            getContainer: function () {
-                return $('.b-spec');
-            },
-
             getTitle: function () {
                 return 'B Spec';
             },
@@ -1822,10 +1900,6 @@ $oop.postpone(app.widgets, 'RSpecGraph', function (widgets, className) {
      */
     app.widgets.RSpecGraph = self
         .addMethods(/** @lends app.Image# */{
-            getContainer: function () {
-                return $('.r-spec');
-            },
-
             getTitle: function () {
                 return 'R Spec';
             },
