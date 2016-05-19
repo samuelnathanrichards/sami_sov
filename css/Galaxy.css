@@ -46,6 +46,11 @@
     overflow: hidden;
 }
 
+.Galaxy .img-container > div.BPTScatterGraph .img {
+    bottom: 0;
+}
+
+
 .Galaxy .img-container h3 {
     margin: 0 2px;
 }
@@ -62,6 +67,8 @@
     display: inline-block;
     width: calc(100% / 255);
     height: 100%;
+    overflow: hidden;
+    position: relative;
 }
 
 .Galaxy .img-container {

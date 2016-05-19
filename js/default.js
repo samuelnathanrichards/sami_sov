@@ -24,36 +24,44 @@ $oop.postpone(app.data, 'Spectrum', function (data, className) {
      * @extends $oop.Base
      */
     app.data.Spectrum = self
+        .setInstanceMapper(function () {
+            return 'singleton'
+        })
+        .addPrivateMethods({
+            _getColorFromMap: function(spectrumType, val) {
+                $assertion.isUnsigned8Bit(val);
+
+                var map = this.colorMaps[spectrumType],
+                    color = map[Math.round(val)];
+
+                return {r: color[0], g: color[1], b: color[2]};
+            }
+        })
         .addMethods(/** @lends app.Spectrum */{
-            RdBl: function (val) {
-                $assertion.isUnsigned8Bit(val);
-
-                return {r: Math.round(val), g: 0, b: 0};
+            addColorMaps: function (colorMaps) {
+                this.colorMaps = colorMaps;
             },
 
-            BuBl: function (val) {
-                $assertion.isUnsigned8Bit(val);
-
-                return {r: 0, g: 0, b: Math.round(val)};
+            YlGnBu: function (val) {
+                return this._getColorFromMap('YlGnBu', val);
             },
 
-            RdYlBu: function (val) {
-                $assertion.isUnsigned8Bit(val);
+            RdYlBu_r: function (val) {
+                return this._getColorFromMap('RdYlBu_r', val);
+            },
 
-                var color = {r: 0, g: 0, b: 0};
+            YlOrRd: function (val) {
+                return this._getColorFromMap('YlOrRd', val);
+            },
 
-                if (val < 255 / 2) {
-                    color.r = Math.round(255 - (val * 2));
-                }
-
-                color.g = Math.round(255 - Math.abs((val * 2) - 255));
-                color.r = color.r + Math.round(255 - Math.abs((val * 2) - 255));
-
-                if (val > 255 / 2) {
-                    color.b = Math.round((val * 2) - 255);
-                }
-
-                return color;
+            BPT: function (val) {
+                return [
+                    {r: 0, g: 0, b: 0},
+                    {r: 255, g: 255, b: 204},
+                    {r: 161, g: 218, b: 180},
+                    {r: 65, g: 182, b: 196},
+                    {r: 34, g: 94, b: 168}
+                ][val];
             }
         });
 });
@@ -125,21 +133,28 @@ $oop.postpone(app.widgets, 'SOVPage', function (widgets, className) {
                     .setChildName('A-loading')
                     .addToParent(this);
 
-                $.ajax(
-                    'data/all_galaxies.json',
-                    {
-                        success: function (data) {
-                            app.widgets.GalaxyList.create(data)
-                                .setChildName('B-galaxyList')
-                                .addToParent(that);
+                var galaxyData,
+                    colorData;
 
-                            that.hideLoader();
-                        },
-                        error: function (data) {
-                            console.log(arguments);
-                        }
-                    }
-                );
+                $.when(
+                    $.get('data/all_galaxies.json', function(data) {
+                        galaxyData = data;
+                    }),
+
+                    $.get('data/matplotlib_colormaps.json', function(data) {
+                        colorData = data;
+                    })
+                ).then(function() {
+                    app.widgets.GalaxyList.create(galaxyData)
+                        .setChildName('B-galaxyList')
+                        .addToParent(that);
+
+                    app.data.Spectrum.create()
+                        .addColorMaps(colorData[0]);
+
+                    that.hideLoader();
+
+                });
 
                 this.elevateMethods('onClick');
                 this.subscribeTo($commonWidgets.EVENT_BUTTON_CLICK, this.onClick);
@@ -667,7 +682,15 @@ $oop.postpone(app.widgets, 'Point', function (widgets, className) {
             },
 
             getValue: function () {
-                // override
+                return this.value;
+            },
+
+            hasValue: function () {
+                return this.value !== null;
+            },
+
+            getRawValue: function () {
+                return this.value;
             }
         });
 });
@@ -787,7 +810,7 @@ $oop.postpone(app.widgets, 'VelPoint', function (widgets, className, data) {
                     return base.getColor.call(this);
                 }
 
-                return data.Spectrum.RdYlBu(this.normalize(this.value));
+                return data.Spectrum.create().RdYlBu_r(this.normalize(this.value));
             },
 
             normalize: function (value) {
@@ -832,7 +855,7 @@ $oop.postpone(app.widgets, 'VelDisPoint', function (widgets, className, data) {
                     return base.getColor.call(this);
                 }
 
-                return data.Spectrum.RdBl(this.normalize(this.value));
+                return data.Spectrum.create().YlOrRd(this.normalize(this.value));
             },
 
             getField: function () {
@@ -864,7 +887,7 @@ $oop.postpone(app.widgets, 'nIIHαPoint', function (widgets, className, data) {
                     return base.getColor.call(this);
                 }
 
-                return data.Spectrum.RdBl(this.normalize(this.value));
+                return data.Spectrum.create().YlOrRd(this.normalize(this.value));
             },
 
             getField: function () {
@@ -896,7 +919,7 @@ $oop.postpone(app.widgets, 'oIIIHβPoint', function (widgets, className, data) {
                     return base.getColor.call(this);
                 }
 
-                return data.Spectrum.BuBl(this.normalize(this.value));
+                return data.Spectrum.create().YlGnBu(this.normalize(this.value));
             },
 
             getField: function () {
@@ -928,7 +951,7 @@ $oop.postpone(app.widgets, 'SFRPoint', function (widgets, className, data) {
                     return base.getColor.call(this);
                 }
 
-                return data.Spectrum.RdBl(this.normalize(this.value));
+                return data.Spectrum.create().YlOrRd(this.normalize(this.value));
             },
 
             getField: function () {
@@ -960,13 +983,7 @@ $oop.postpone(app.widgets, 'BPTClassPoint', function (widgets, className, data) 
                     return base.getColor.call(this);
                 }
 
-                return [
-                    {r: 0, g: 0, b: 0},
-                    {r: 255, g: 0, b: 0},   // red
-                    {r: 255, g: 0, b: 255}, // magenta
-                    {r: 0, g: 255, b: 0},   // green
-                    {r: 0, g: 0, b: 255}    // blue
-                ][this.value];
+                return data.Spectrum.create().BPT(this.value);
             },
 
             getField: function () {
@@ -1011,10 +1028,6 @@ $oop.postpone(app.widgets, 'RGBPoint', function (widgets, className) {
 
             getField: function () {
                 return 'rgb';
-            },
-
-            getValue: function () {
-                return this.value;
             }
         });
 });
@@ -1214,12 +1227,14 @@ $oop.postpone(app.widgets, 'Image', function (widgets, className) {
             },
 
             setCursorPosition: function (x, y) {
+                var point = this.createPoint(x, y, this.data),
+                    hasValue = point.hasValue();
+
                 this.getChild('cursor').setPosition(x, y);
 
-                var value = this.createPoint(x, y, this.data).getValue();
-                if (value) {
-                    this.getChild('value').setLabelText(value);
-                    this.getChild('spectrum-indicator').setPosition(value);
+                if (hasValue) {
+                    this.getChild('value').setLabelText(point.getRawValue());
+                    this.getChild('spectrum-indicator').setPosition(point.getValue());
                 }
             },
 
@@ -1292,7 +1307,7 @@ $oop.postpone(app.widgets, 'SFRImage', function (widgets, className, data) {
             },
 
             getColor: function (index) {
-                return data.Spectrum.RdBl(index);
+                return data.Spectrum.create().YlOrRd(index);
             }
         });
 }, app.data);
@@ -1324,7 +1339,7 @@ $oop.postpone(app.widgets, 'VelImage', function (widgets, className, data) {
             },
 
             getColor: function (index) {
-                return data.Spectrum.RdYlBu(index);
+                return data.Spectrum.create().RdYlBu_r(index);
             }
         });
 }, app.data);
@@ -1356,7 +1371,7 @@ $oop.postpone(app.widgets, 'VelDisImage', function (widgets, className, data) {
             },
 
             getColor: function (index) {
-                return data.Spectrum.RdBl(index);
+                return data.Spectrum.create().YlOrRd(index);
             }
         });
 }, app.data);
@@ -1389,13 +1404,7 @@ $oop.postpone(app.widgets, 'BPTClassImage', function (widgets, className, data) 
 
             getColor: function (index) {
                 index = Math.round((index - 25)/255 * 5);
-                return [
-                    {r: 0, g: 0, b: 0},
-                    {r: 255, g: 0, b: 0},   // red
-                    {r: 255, g: 0, b: 255}, // magenta
-                    {r: 0, g: 255, b: 0},   // green
-                    {r: 0, g: 0, b: 255}    // blue
-                ][index];
+                return data.Spectrum.create().BPT(index);
             }
         });
 }, app.data);
@@ -1427,7 +1436,7 @@ $oop.postpone(app.widgets, 'nIIHαImage', function (widgets, className, data) {
             },
 
             getColor: function (index) {
-                return data.Spectrum.RdBl(index);
+                return data.Spectrum.create().YlOrRd(index);
             }
         });
 }, app.data);
@@ -1459,7 +1468,7 @@ $oop.postpone(app.widgets, 'oIIIHβImage', function (widgets, className, data) {
             },
 
             getColor: function (index) {
-                return data.Spectrum.BuBl(index);
+                return data.Spectrum.create().YlGnBu(index);
             }
         });
 }, app.data);
@@ -1495,8 +1504,8 @@ $oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
                 var points = data.bpt_points.map(function (value) {
                         return {
                             name: 'x:' + value.x + ', y:' + value.y,
-                            x: value.oiii_hb,
-                            y: value.nii_ha
+                            x: value.nii_ha,
+                            y: value.oiii_hb
                         }
                     }),
                     $container = $(this.getElement()),
@@ -1521,13 +1530,19 @@ $oop.postpone(app.widgets, 'BPTScatterGraph', function (widgets, className) {
                             title: {
                                 enabled: true,
                                 text: "oIII Hβ"
-                            }
+                            },
+                            min: -1.5,
+                            max: 1.5,
+                            tickInterval: 0.5
                         },
                         yAxis: {
                             title: {
                                 enabled: true,
                                 text: "nII Hα"
-                            }
+                            },
+                            min: -1.2,
+                            max: 1.2,
+                            tickInterval: 0.4
                         },
                         plotOptions: {
                             scatter: {
