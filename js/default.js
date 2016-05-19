@@ -750,16 +750,12 @@ $oop.postpone(app.widgets, 'NormalizedPoint', function (widgets, className) {
             },
 
             normalize: function (value) {
-                var max = Math.max(this.max, Math.abs(this.min));
-
                 value = Math.min(this.max, value);
                 value = Math.max(this.min, value);
 
-                value = ((value + max) / (max * 2));
+                value = ((value - this.min) / (this.max - this.min));
 
-                var color =  value * 255;
-
-                return color;
+                return value * 255;
             },
 
             getValue: function () {
@@ -792,6 +788,19 @@ $oop.postpone(app.widgets, 'VelPoint', function (widgets, className, data) {
                 }
 
                 return data.Spectrum.RdYlBu(this.normalize(this.value));
+            },
+
+            normalize: function (value) {
+                var max = Math.max(this.max, Math.abs(this.min));
+
+                value = Math.min(this.max, value);
+                value = Math.max(this.min, value);
+
+                value = ((value + max) / (max * 2));
+
+                var color =  value * 255;
+
+                return color;
             },
 
             getField: function () {
